@@ -1,11 +1,11 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
-import type { User } from '../types/types';
+import type { User, ApiResponse } from '../types/types';
 import { apiDomain } from '../ApiDomain/ApiDomain';
 
 export const userApi = createApi({
     reducerPath: 'userApi',
     baseQuery: fetchBaseQuery({ 
-        baseUrl: apiDomain,
+        baseUrl: apiDomain, // This should be "http://localhost:3001/api"
         prepareHeaders: (headers) => {
             const token = localStorage.getItem('token');
             if (token) {
@@ -16,45 +16,55 @@ export const userApi = createApi({
     }),
     tagTypes: ['Users'],
     endpoints: (builder) => ({
-
-        // Fetch all Users
+        // Fetch all Users - FIXED: Added 'api/' prefix
         getAllUsers: builder.query<User[], void>({
-            query: () => 'users',
+            query: () => 'api/users', // Changed from 'users' to 'api/users'
             providesTags: ['Users'],
         }),        
 
-        //get user by id
+        // Get user by id - FIXED: Added 'api/' prefix
         getUserById: builder.query<User, { user_id: string }>({
-            query: ({ user_id }) => `users/${user_id}`,
+            query: ({ user_id }) => `api/users/${user_id}`, // Changed from 'users/' to 'api/users/'
             providesTags: ['Users'],
         }),
 
-        //update user details
-        updateUsersDetails: builder.mutation<{ message: string }, { user_id: string } & Partial<Omit<User, 'user_id' | 'role' | 'created_at' | 'updated_at'>>>({
+        // Update user details - FIXED: Added 'api/' prefix
+        updateUsersDetails: builder.mutation<ApiResponse<any>, { user_id: string } & Partial<Omit<User, 'user_id' | 'role' | 'created_at' | 'updated_at'>>>({
             query: ({ user_id, ...updateUser }) => ({
-                url: `users/${user_id}`,
+                url: `api/users/${user_id}`, // Changed from 'users/' to 'api/users/'
                 method: 'PUT',
                 body: updateUser,
             }),
             invalidatesTags: ['Users'],
         }),
 
-        //update user role
-        updateUserRoleStatus: builder.mutation<{ message: string }, { user_id: string, role: string }>({
+        // Update user role - FIXED: Added 'api/' prefix
+        updateUserRoleStatus: builder.mutation<ApiResponse<any>, { user_id: string, role: string }>({
             query: ({ user_id, ...updateUserRole }) => ({
-                url: `users/user-role/${user_id}`,
+                url: `api/users/user-role/${user_id}`, // Changed from 'users/' to 'api/users/'
                 method: 'PATCH',
                 body: updateUserRole,
             }),
             invalidatesTags: ['Users']
         }),
 
-    }),
-})
+        // Optional: Delete user - ADDED if needed
+        deleteUser: builder.mutation<ApiResponse<any>, { user_id: string }>({
+            query: ({ user_id }) => ({
+                url: `api/users/${user_id}`, // Changed from 'users/' to 'api/users/'
+                method: 'DELETE',
+            }),
+            invalidatesTags: ['Users']
+        }),
 
+    }),
+});
+
+// Export hooks
 export const {
     useGetAllUsersQuery,
     useGetUserByIdQuery,
     useUpdateUsersDetailsMutation,
     useUpdateUserRoleStatusMutation,
-} = userApi
+    useDeleteUserMutation, // Added if you include delete endpoint
+} = userApi;

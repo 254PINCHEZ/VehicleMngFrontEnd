@@ -52,7 +52,7 @@ const Header: React.FC = () => {
             How It Works
           </Link>
           <Link 
-            to="/my-bookings" 
+            to="/register" 
             className="nav-link" 
             onClick={closeMenu}
           >

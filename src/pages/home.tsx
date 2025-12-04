@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-//import Navbar from '../components/Navbar';
 import Footer from '../components/footer';
 import Header from '../../src/components/Header'
 
@@ -150,26 +149,15 @@ const Home: React.FC = () => {
                   seamless booking, and exceptional service.
                 </p>
               </div>
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex justify-start">
                 <Link 
-                  to="/login" 
+                  to="/register" 
                   className="group bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-300 text-center shadow-lg hover:shadow-xl transform hover:-translate-y-1"
                 >
                   <span className="flex items-center justify-center gap-2">
                     Browse Vehicles
                     <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                  </span>
-                </Link>
-                <Link 
-                  to="/how-it-works" 
-                  className="group border-2 border-white/80 hover:border-white hover:bg-white/10 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-300 text-center backdrop-blur-sm"
-                >
-                  <span className="flex items-center justify-center gap-2">
-                    How It Works
-                    <svg className="w-5 h-5 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </span>
                 </Link>
@@ -192,11 +180,11 @@ const Home: React.FC = () => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {featuresData.map(feature => (
-              <div key={feature.id} className="group text-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100 hover:border-blue-200 hover:-translate-y-2">
-                <div className="text-5xl mb-6 transform group-hover:scale-110 transition-transform duration-300">
+              <div key={feature.id} className="group text-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100 hover:border-blue-200">
+                <div className="text-5xl mb-6">
                   {feature.icon}
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-blue-600 transition-colors">
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">
                   {feature.title}
                 </h3>
                 <p className="text-gray-600 leading-relaxed">
@@ -221,12 +209,12 @@ const Home: React.FC = () => {
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {featuredVehicles.map(vehicle => (
-              <div key={vehicle.id} className="group bg-white rounded-3xl shadow-xl hover:shadow-2xl overflow-hidden transition-all duration-500 border border-gray-100 hover:border-blue-200">
+              <div key={vehicle.id} className="group bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
                 <div className="relative overflow-hidden">
                   <img 
                     src={vehicle.image} 
                     alt={vehicle.title}
-                    className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-700"
+                    className="w-full h-80 object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                   {vehicle.badge && (
@@ -239,7 +227,7 @@ const Home: React.FC = () => {
                   </div>
                 </div>
                 <div className="p-8">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3">
                     {vehicle.title}
                   </h3>
                   <div className="flex items-center text-gray-600 mb-4">
@@ -277,17 +265,9 @@ const Home: React.FC = () => {
                       </p>
                       <p className="text-xs text-gray-500 mt-1">All taxes & insurance included</p>
                     </div>
-                    <Link 
-                      to={`/vehicles/${vehicle.id}`}
-                      className="group bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
-                    >
-                      <span className="flex items-center gap-2">
-                        Book Now
-                        <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                        </svg>
-                      </span>
-                    </Link>
+                    <div className="text-sm text-gray-500">
+                      Available for rental
+                    </div>
                   </div>
                 </div>
               </div>
@@ -309,12 +289,12 @@ const Home: React.FC = () => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {popularVehicles.map(vehicle => (
-              <div key={vehicle.id} className="group bg-white rounded-2xl shadow-lg hover:shadow-xl overflow-hidden transition-all duration-500 border border-gray-100 hover:border-orange-200 hover:-translate-y-2">
+              <div key={vehicle.id} className="group bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
                 <div className="relative overflow-hidden">
                   <img 
                     src={vehicle.image} 
                     alt={vehicle.title}
-                    className="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-700"
+                    className="w-full h-56 object-cover"
                   />
                   {vehicle.badge && (
                     <span className="absolute top-4 left-4 bg-gradient-to-r from-orange-500 to-amber-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
@@ -326,7 +306,7 @@ const Home: React.FC = () => {
                   </div>
                 </div>
                 <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-orange-600 transition-colors line-clamp-1">
+                  <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-1">
                     {vehicle.title}
                   </h3>
                   <div className="flex justify-between text-sm text-gray-500 mb-3">
@@ -350,12 +330,9 @@ const Home: React.FC = () => {
                         <span className="text-sm font-normal text-gray-500 ml-1">/day</span>
                       </p>
                     </div>
-                    <Link 
-                      to={`/vehicles/${vehicle.id}`}
-                      className="bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 px-6 rounded-lg transition-all duration-300 text-sm shadow hover:shadow-md transform hover:-translate-y-0.5"
-                    >
-                      View Details
-                    </Link>
+                    <div className="text-xs text-gray-500">
+                      Ready to rent
+                    </div>
                   </div>
                 </div>
               </div>
@@ -371,20 +348,20 @@ const Home: React.FC = () => {
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/5 rounded-full translate-y-48 -translate-x-48"></div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
-            <div className="group">
-              <div className="text-5xl md:text-6xl font-black mb-4 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent group-hover:scale-110 transition-transform duration-300">
+            <div>
+              <div className="text-5xl md:text-6xl font-black mb-4 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
                 200+
               </div>
               <div className="text-xl font-semibold text-blue-100">Vehicles Available</div>
             </div>
-            <div className="group">
-              <div className="text-5xl md:text-6xl font-black mb-4 bg-gradient-to-r from-white to-green-100 bg-clip-text text-transparent group-hover:scale-110 transition-transform duration-300">
+            <div>
+              <div className="text-5xl md:text-6xl font-black mb-4 bg-gradient-to-r from-white to-green-100 bg-clip-text text-transparent">
                 5K+
               </div>
               <div className="text-xl font-semibold text-blue-100">Happy Renters</div>
             </div>
-            <div className="group">
-              <div className="text-5xl md:text-6xl font-black mb-4 bg-gradient-to-r from-white to-emerald-100 bg-clip-text text-transparent group-hover:scale-110 transition-transform duration-300">
+            <div>
+              <div className="text-5xl md:text-6xl font-black mb-4 bg-gradient-to-r from-white to-emerald-100 bg-clip-text text-transparent">
                 98%
               </div>
               <div className="text-xl font-semibold text-blue-100">Satisfaction Rate</div>
@@ -405,7 +382,7 @@ const Home: React.FC = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
             <Link 
-              to="/inventory"
+              to="/register"
               className="group bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-5 px-12 rounded-2xl transition-all duration-300 text-lg shadow-2xl hover:shadow-3xl transform hover:-translate-y-2"
             >
               <span className="flex items-center gap-3">

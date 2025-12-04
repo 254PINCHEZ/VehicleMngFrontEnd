@@ -1,11 +1,11 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
-import type { Booking } from '../types/types';
+import type { Booking, ApiResponse } from '../types/types';
 import { apiDomain } from '../ApiDomain/ApiDomain';
 
 export const bookingApi = createApi({
     reducerPath: 'bookingApi',
     baseQuery: fetchBaseQuery({ 
-        baseUrl: apiDomain,
+        baseUrl: apiDomain, // Should be "http://localhost:3001/api"
         prepareHeaders: (headers) => {
             const token = localStorage.getItem('token');
             if (token) {
@@ -16,10 +16,24 @@ export const bookingApi = createApi({
     }),
     tagTypes: ['Bookings'],
     endpoints: (builder) => ({
-        // Booking endpoints will be added here
+        // FIXED: Add 'api/' if your backend expects it
         getAllBookings: builder.query<Booking[], void>({
-            query: () => 'bookings',
+            query: () => 'api/bookings', // Changed from 'bookings' to 'api/bookings'
             providesTags: ['Bookings'],
         }),
+
+        updateBookingStatus: builder.mutation<ApiResponse<any>, { booking_id: number; status: string }>({
+            query: ({ booking_id, status }) => ({
+                url: `api/bookings/${booking_id}/status`, // Add 'api/' prefix
+                method: 'PUT',
+                body: { status },
+            }),
+            invalidatesTags: ['Bookings'],
+        }),
     }),
-})
+});
+
+export const { 
+    useGetAllBookingsQuery,
+    useUpdateBookingStatusMutation,
+} = bookingApi;

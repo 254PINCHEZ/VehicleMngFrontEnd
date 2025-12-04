@@ -19,6 +19,15 @@ import { paymentApi } from '../API/PaymentAPI'
 import { ticketApi } from '../API/ticketAPi'
 import { userApi } from '../API/UserAPI'
 
+// Import the additional APIs from your first example
+import { dashboardDataApi } from '../API/dashboardDataApi'
+import { analyticsApi } from '../API/analyticsApi'
+import { supportApi } from '../API/supportAPi'
+import { settingsApi } from '../API/settingsAPi'
+
+// Import the new paymentHistoryApi
+import { paymentHistoryApi } from '../API/paymentHistoryApi'  // Add this import
+
 // Configure the Redux store
 const authPersistConfig = {
   key: 'auth',
@@ -32,17 +41,26 @@ const persistedAuthReducer = persistReducer(authPersistConfig, authSlice)
 
 export const store = configureStore({
   reducer: {
-    // Add the API reducers
+    // Add the API reducers from your existing setup
     [vehicleApi.reducerPath]: vehicleApi.reducer,
     [authApi.reducerPath]: authApi.reducer,
     [bookingApi.reducerPath]: bookingApi.reducer,
     [paymentApi.reducerPath]: paymentApi.reducer,
     [ticketApi.reducerPath]: ticketApi.reducer,
     [userApi.reducerPath]: userApi.reducer,
+    
+    // Add the additional API reducers from your first example
+    [dashboardDataApi.reducerPath]: dashboardDataApi.reducer,
+    [analyticsApi.reducerPath]: analyticsApi.reducer,
+    [supportApi.reducerPath]: supportApi.reducer,
+    [settingsApi.reducerPath]: settingsApi.reducer,
+
+    // Add the new paymentHistoryApi reducer
+    [paymentHistoryApi.reducerPath]: paymentHistoryApi.reducer,  // Add this line
 
     // Add the slice reducers
     auth: persistedAuthReducer,
-    booking: bookingSlice, // Changed from bookingSlice to booking for consistency
+    booking: bookingSlice,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -50,12 +68,22 @@ export const store = configureStore({
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
       },
     }).concat(
+      // Your existing API middlewares
       vehicleApi.middleware,
       authApi.middleware,
       bookingApi.middleware,
       paymentApi.middleware,
       ticketApi.middleware,
-      userApi.middleware
+      userApi.middleware,
+      
+      // Additional API middlewares from your first example
+      dashboardDataApi.middleware,
+      analyticsApi.middleware,
+      supportApi.middleware,
+      settingsApi.middleware,
+
+      // Add the new paymentHistoryApi middleware
+      paymentHistoryApi.middleware  // Add this line
     ),
 })
 

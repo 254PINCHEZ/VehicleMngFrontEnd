@@ -20,8 +20,13 @@ const Login: React.FC = () => {
   const handleLoginForm = async (data: LoginFormValues) => {
     try {
       const response = await loginUser(data).unwrap();
-      console.log('Login successful:', response);
-
+      
+      // 🔍 DEBUG: Check what the login response contains
+      console.log('🔍 LOGIN RESPONSE:', response);
+      console.log('User ID Type:', typeof response.user?.user_id);
+      console.log('User ID Value:', response.user?.user_id);
+      console.log('Full User Object:', response.user);
+      
       dispatch(setCredentials({ 
         token: response.token, 
         user: response.user 

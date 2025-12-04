@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import {type User } from '../../types/types';
+import { type User } from '../../types/types';
 
 interface HeaderProps {
   user: User;
   onMenuToggle: () => void;
+  onLogout: () => void; // Add this prop for logout functionality
 }
 
-const Header: React.FC<HeaderProps> = ({ user, onMenuToggle }) => {
+const Header: React.FC<HeaderProps> = ({ user, onMenuToggle, onLogout }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const getGreeting = () => {
@@ -14,6 +15,11 @@ const Header: React.FC<HeaderProps> = ({ user, onMenuToggle }) => {
     if (hour < 12) return 'Good morning';
     if (hour < 18) return 'Good afternoon';
     return 'Good evening';
+  };
+
+  const handleLogout = () => {
+    setIsDropdownOpen(false); // Close dropdown first
+    onLogout(); // Then call the logout function
   };
 
   return (
@@ -120,7 +126,10 @@ const Header: React.FC<HeaderProps> = ({ user, onMenuToggle }) => {
 
                 {/* Logout */}
                 <div className="border-t border-slate-200 pt-2">
-                  <button className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150">
+                  <button 
+                    onClick={handleLogout} // Add onClick handler here
+                    className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150"
+                  >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
