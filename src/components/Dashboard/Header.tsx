@@ -1,14 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'; // Add this import
 import { type User } from '../../types/types';
+import { 
+  Bell, 
+  ChevronDown, 
+  User as UserIcon, 
+  HelpCircle, 
+  LogOut, 
+  Settings,
+  Menu
+} from 'lucide-react';
+import { useDispatch } from 'react-redux';
+import { logout } from '../../slice/Authslice';
 
 interface HeaderProps {
   user: User;
   onMenuToggle: () => void;
-  onLogout: () => void; // Add this prop for logout functionality
+  // Remove onLogout from props since we'll handle it internally
 }
 
-const Header: React.FC<HeaderProps> = ({ user, onMenuToggle, onLogout }) => {
+const Header: React.FC<HeaderProps> = ({ user, onMenuToggle }) => {
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -17,138 +32,190 @@ const Header: React.FC<HeaderProps> = ({ user, onMenuToggle, onLogout }) => {
     return 'Good evening';
   };
 
-  const handleLogout = () => {
-    setIsDropdownOpen(false); // Close dropdown first
-    onLogout(); // Then call the logout function
+  const handleLogout = async () => {
+    setIsDropdownOpen(false);
+    
+
+    // Add your logout logic here (clear tokens, etc.)
+    // Example:
+    localStorage.removeItem('auth_token'); // Remove token if stored
+    localStorage.removeItem('token'); // Remove token if stored
+    localStorage.removeItem('user'); // Remove user data if stored
+    dispatch(logout())
+    navigate("/login")
+    
+    await new Promise(resolve => setTimeout(resolve, 200)); // Smooth close animation
+    
+    // Redirect to login page
+    navigate('/login');
   };
 
+  // Close dropdown when clicking outside
+  // useEffect(() => {
+  //   const handleClickOutside = (event: MouseEvent) => {
+  //     if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+  //       setIsDropdownOpen(false);
+  //     }
+  //   };
+
+  //   document.addEventListener('mousedown', handleClickOutside);
+  //   return () => document.removeEventListener('mousedown', handleClickOutside);
+  // }, []);
+
   return (
-    <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
+    <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200/60 shadow-sm">
       <div className="flex items-center justify-between px-6 py-4">
         {/* Left Section - Menu Button & Greeting */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center gap-4">
           {/* Mobile Menu Button */}
           <button
             onClick={onMenuToggle}
-            className="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-200"
+            className="lg:hidden p-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-300 active:scale-95"
             aria-label="Toggle menu"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
+            <Menu className="w-5 h-5" />
           </button>
 
           {/* Greeting */}
           <div className="hidden sm:block">
-            <h1 className="text-2xl font-bold text-slate-900">
-              {getGreeting()}, {user.first_name} 👋
-            </h1>
-            <p className="text-sm text-slate-600 mt-1">
-              Welcome back to your dashboard
-            </p>
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-8 bg-gradient-to-b from-blue-600 to-indigo-600 rounded-full"></div>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                  {getGreeting()}, {user.first_name} 👋
+                </h1>
+                <p className="text-sm text-slate-600 mt-0.5">
+                  Welcome back to your dashboard
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Mobile Greeting */}
           <div className="sm:hidden">
-            <h1 className="text-xl font-bold text-slate-900">Dashboard</h1>
+            <h1 className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+              Dashboard
+            </h1>
+            <p className="text-xs text-slate-500 mt-0.5">Welcome back</p>
           </div>
         </div>
 
         {/* Right Section - User Menu & Actions */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center gap-3">
           {/* Notifications Bell */}
-          <button className="relative p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-200">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM10.24 8.56a5.97 5.97 0 01-3.77-4.31 1 1 0 00-1.15-.8 6.53 6.53 0 00-4.85 7.89 1 1 0 001.67.47 5.97 5.97 0 013.77-4.31 1 1 0 00.8-1.15z" />
-            </svg>
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 border-2 border-white rounded-full flex items-center justify-center">
-              <span className="text-xs text-white font-bold">3</span>
+          <button className="relative p-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-300 group">
+            <Bell className="w-5 h-5" />
+            <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-red-500 to-orange-500 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+              <span className="text-xs text-white font-semibold">3</span>
             </span>
+            <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-blue-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           </button>
 
           {/* User Dropdown */}
-          <div className="relative">
+          <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center space-x-3 p-2 rounded-lg hover:bg-slate-100 transition-all duration-200"
+              className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-100 transition-all duration-300 active:scale-95 group"
             >
-              <div className="w-8 h-8 bg-gradient-to-br from-slate-600 to-slate-800 rounded-full flex items-center justify-center">
-                <span className="text-white font-semibold text-sm">
-                  {user.first_name.charAt(0)}{user.last_name.charAt(0)}
-                </span>
+              <div className="relative">
+                <div className="w-9 h-9 bg-gradient-to-br from-slate-700 to-slate-900 rounded-xl flex items-center justify-center shadow-md ring-2 ring-white">
+                  <span className="text-white font-semibold text-sm">
+                    {user.first_name.charAt(0)}{user.last_name.charAt(0)}
+                  </span>
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white"></div>
               </div>
+              
               <div className="hidden md:block text-left">
                 <p className="text-sm font-semibold text-slate-900">
                   {user.first_name} {user.last_name}
                 </p>
                 <p className="text-xs text-slate-500 capitalize">{user.role}</p>
               </div>
-              <svg 
-                className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+              
+              <ChevronDown 
+                className={`w-4 h-4 text-slate-400 transition-all duration-300 group-hover:text-slate-600 ${
+                  isDropdownOpen ? 'rotate-180' : ''
+                }`}
+              />
             </button>
 
             {/* Dropdown Menu */}
-            {isDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-50">
-                {/* User Info */}
-                <div className="px-4 py-3 border-b border-slate-200">
-                  <p className="text-sm font-semibold text-slate-900">
-                    {user.first_name} {user.last_name}
-                  </p>
-                  <p className="text-sm text-slate-600 truncate">{user.email}</p>
-                  <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-1">
-                    {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+            <div
+              className={`absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-200/80 overflow-hidden transition-all duration-300 ${
+                isDropdownOpen
+                  ? 'opacity-100 scale-100 translate-y-0'
+                  : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
+              }`}
+            >
+              {/* User Info */}
+              <div className="px-5 py-4 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 border-b border-slate-200/60">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-slate-700 to-slate-900 rounded-xl flex items-center justify-center shadow-md">
+                    <span className="text-white font-semibold text-base">
+                      {user.first_name.charAt(0)}{user.last_name.charAt(0)}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-900 truncate">
+                      {user.first_name} {user.last_name}
+                    </p>
+                    <p className="text-xs text-slate-600 truncate mt-0.5">{user.email}</p>
+                    <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gradient-to-r from-blue-100 to-blue-50 text-blue-800 border border-blue-200 mt-1.5">
+                      {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                    </div>
                   </div>
                 </div>
-
-                {/* Dropdown Links */}
-                <div className="py-2">
-                  <a href="/dashboard/profile" className="flex items-center space-x-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors duration-150">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    <span>Profile Settings</span>
-                  </a>
-                  
-                  <a href="/dashboard/support" className="flex items-center space-x-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors duration-150">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>Help & Support</span>
-                  </a>
-                </div>
-
-                {/* Logout */}
-                <div className="border-t border-slate-200 pt-2">
-                  <button 
-                    onClick={handleLogout} // Add onClick handler here
-                    className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    <span>Sign Out</span>
-                  </button>
-                </div>
               </div>
-            )}
+
+              {/* Dropdown Links */}
+              <div className="py-2">
+                <a
+                  href="/dashboard/profile"
+                  className="group flex items-center gap-3 px-5 py-3 text-sm text-slate-700 hover:bg-slate-50/80 transition-all duration-200"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-600 transition-colors duration-200">
+                    <UserIcon className="w-4 h-4 text-blue-600 group-hover:text-white transition-colors duration-200" />
+                  </div>
+                  <div>
+                    <span className="font-medium">Profile Settings</span>
+                    <p className="text-xs text-slate-500 mt-0.5">Manage your account</p>
+                  </div>
+                </a>
+
+                <a
+                  href="/dashboard/support"
+                  className="group flex items-center gap-3 px-5 py-3 text-sm text-slate-700 hover:bg-slate-50/80 transition-all duration-200"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-600 transition-colors duration-200">
+                    <HelpCircle className="w-4 h-4 text-emerald-600 group-hover:text-white transition-colors duration-200" />
+                  </div>
+                  <div>
+                    <span className="font-medium">Help & Support</span>
+                    <p className="text-xs text-slate-500 mt-0.5">Get help and support</p>
+                  </div>
+                </a>
+              </div>
+
+              {/* Logout */}
+              <div className="border-t border-slate-200/60">
+                <button
+                  onClick={handleLogout}
+                  className="group flex items-center gap-3 w-full px-5 py-3 text-sm text-slate-700 hover:bg-red-50/80 transition-all duration-200"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center group-hover:bg-red-600 transition-colors duration-200">
+                    <LogOut className="w-4 h-4 text-red-600 group-hover:text-white transition-colors duration-200" />
+                  </div>
+                  <div>
+                    <span className="font-medium text-red-600 group-hover:text-red-700">Sign Out</span>
+                    <p className="text-xs text-slate-500 mt-0.5">Log out of your account</p>
+                  </div>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-
-      {/* Close dropdown when clicking outside */}
-      {isDropdownOpen && (
-        <div 
-          className="fixed inset-0 z-40" 
-          onClick={() => setIsDropdownOpen(false)}
-        />
-      )}
     </header>
   );
 };

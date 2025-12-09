@@ -1,21 +1,33 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import AdminDashboardLayout from '../../components/Dashboard/admDashboardLayout';
-import { Car, DollarSign, Calendar, Users, XCircle, TrendingUp, Shield } from 'lucide-react';
+import { 
+  Car, 
+  DollarSign, 
+  Calendar, 
+  Users, 
+  Loader2,
+  ArrowUpRight,
+  CheckCircle2,
+  BarChart3,
+  Settings,
+  Eye,
+  TrendingUp as TrendingUpIcon
+} from 'lucide-react';
 import { dashboardDataApi } from '../../API/dashboardDataApi';
 import { bookingApi } from '../../API/BookingAPI';
 import type { RootState } from '../../store/store';
 import { useSelector } from 'react-redux';
 import { skipToken } from '@reduxjs/toolkit/query';
 
-// Define proper TypeScript interfaces
-interface AdminDashboardStats {
+interface DashboardStats {
   totalBookings: number;
   totalRevenue: number;
   totalUsers: number;
   activeVehicles: number;
-  revenueChange?: number;
-  bookingChange?: number;
-  userChange?: number;
+  revenueChange: number;
+  bookingChange: number;
+  userChange: number;
 }
 
 interface RecentBooking {
@@ -33,7 +45,7 @@ interface RecentBooking {
 const AdminDashboard: React.FC = () => {
     const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
 
-    // Dashboard data query
+    // Dashboard data query with simplified error handling
     const { 
         data: dashboardData, 
         isLoading: dataIsLoading, 
@@ -45,11 +57,32 @@ const AdminDashboard: React.FC = () => {
     // Recent bookings query
     const { 
         data: recentBookingsData, 
-        isLoading: bookingsDataIsLoading, 
-        error: bookingsDataError 
+        isLoading: bookingsDataIsLoading
     } = bookingApi.useGetAllBookingsQuery(
         isAuthenticated ? undefined : skipToken
     );
+
+    // Default stats if API fails
+    const defaultStats: DashboardStats = {
+        totalBookings: 0,
+        totalRevenue: 0,
+        totalUsers: 0,
+        activeVehicles: 0,
+        revenueChange: 0,
+        bookingChange: 0,
+        userChange: 0
+    };
+
+    // Use API data or fallback to defaults
+    const stats: DashboardStats = dashboardData ? {
+        totalBookings: dashboardData.totalBookings || 0,
+        totalRevenue: dashboardData.totalRevenue || 0,
+        totalUsers: dashboardData.totalUsers || 0,
+        activeVehicles: dashboardData.activeVehicles || 0,
+        revenueChange: dashboardData.revenueChange || 0,
+        bookingChange: dashboardData.bookingChange || 0,
+        userChange: dashboardData.userChange || 0
+    } : defaultStats;
 
     // Format date
     const formatDateTime = (dateString: string) => {
@@ -65,22 +98,63 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
-    // Get status color - FIXED with safe access
-    const getStatusColor = (status: string | undefined) => {
-        if (!status) return 'badge-neutral';
+    // Get status color and styling
+    const getStatusStyles = (status: string | undefined) => {
+        if (!status) return {
+            bg: 'bg-slate-100',
+            text: 'text-slate-800',
+            border: 'border-slate-200',
+            icon: '🔄'
+        };
         
         const normalizedStatus = status.toLowerCase();
         switch (normalizedStatus) {
-            case 'pending': return 'badge-warning';
-            case 'confirmed': return 'badge-info';
-            case 'active': return 'badge-primary';
-            case 'cancelled': return 'badge-error';
-            case 'completed': return 'badge-success';
-            default: return 'badge-neutral';
+            case 'pending':
+                return {
+                    bg: 'bg-amber-500/10',
+                    text: 'text-amber-700',
+                    border: 'border-amber-500/20',
+                    icon: '⏳'
+                };
+            case 'confirmed':
+                return {
+                    bg: 'bg-blue-500/10',
+                    text: 'text-blue-700',
+                    border: 'border-blue-500/20',
+                    icon: '✅'
+                };
+            case 'active':
+                return {
+                    bg: 'bg-emerald-500/10',
+                    text: 'text-emerald-700',
+                    border: 'border-emerald-500/20',
+                    icon: '🚗'
+                };
+            case 'cancelled':
+                return {
+                    bg: 'bg-red-500/10',
+                    text: 'text-red-700',
+                    border: 'border-red-500/20',
+                    icon: '❌'
+                };
+            case 'completed':
+                return {
+                    bg: 'bg-green-500/10',
+                    text: 'text-green-700',
+                    border: 'border-green-500/20',
+                    icon: '🏁'
+                };
+            default:
+                return {
+                    bg: 'bg-slate-100',
+                    text: 'text-slate-800',
+                    border: 'border-slate-200',
+                    icon: '🔄'
+                };
         }
     };
 
-    // Format status text - NEW helper function
+    // Format status text
     const formatStatusText = (status: string | undefined) => {
         if (!status) return 'Unknown';
         return status.charAt(0).toUpperCase() + status.slice(1);
@@ -120,103 +194,173 @@ const AdminDashboard: React.FC = () => {
             title: 'Add Vehicle',
             description: 'Add new vehicle to fleet',
             icon: Car,
-            color: 'bg-blue-600 hover:bg-blue-700',
+            gradient: 'from-blue-600 to-indigo-600',
+            hoverGradient: 'from-blue-700 to-indigo-700',
             href: '/admin/vehicles/add'
         },
         {
             title: 'Manage Users',
             description: 'View and manage users',
             icon: Users,
-            color: 'bg-green-600 hover:bg-green-700',
+            gradient: 'from-emerald-600 to-teal-600',
+            hoverGradient: 'from-emerald-700 to-teal-700',
             href: '/admin/users'
         },
         {
             title: 'View Reports',
             description: 'Analytics and insights',
-            icon: TrendingUp,
-            color: 'bg-purple-600 hover:bg-purple-700',
+            icon: BarChart3,
+            gradient: 'from-purple-600 to-violet-600',
+            hoverGradient: 'from-purple-700 to-violet-700',
             href: '/admin/analytics'
         },
         {
             title: 'System Settings',
             description: 'Platform configuration',
-            icon: Shield,
-            color: 'bg-orange-600 hover:bg-orange-700',
+            icon: Settings,
+            gradient: 'from-orange-600 to-amber-600',
+            hoverGradient: 'from-orange-700 to-amber-700',
             href: '/admin/settings'
         }
     ];
 
     return (
         <AdminDashboardLayout>
-            {/* Dashboard Header */}
-            <div className="mb-8 bg-green-700 p-4 rounded-lg">
-                <h1 className="text-3xl font-bold text-white">VehicleRent Admin Dashboard</h1>
-                <p className="text-green-200 mt-2">Welcome to VehicleRent Admin Management Dashboard</p>
+            {/* Dashboard Header - Professional Gradient */}
+            <div className="mb-8 bg-gradient-to-r from-slate-800 via-slate-800 to-slate-900 p-6 rounded-2xl border border-slate-700/50 shadow-xl">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-slate-200 to-slate-300 bg-clip-text text-transparent">
+                            Dashboard Overview
+                        </h1>
+                        <p className="text-slate-400 mt-2 flex items-center">
+                            <CheckCircle2 className="w-4 h-4 mr-2 text-emerald-400" />
+                            Welcome back, {user?.first_name}. Real-time system monitoring active.
+                        </p>
+                    </div>
+                    <div className="hidden md:flex items-center space-x-2 px-4 py-2 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                        <span className="text-sm text-slate-300">Live Data</span>
+                    </div>
+                </div>
             </div>
 
-            {/* Stats Cards */}
+            {/* Stats Cards - Always show, even if loading or error */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 {dataIsLoading ? (
-                    <div className="col-span-4 flex justify-center items-center py-16">
-                        <span className="loading loading-spinner loading-lg text-green-600"></span>
-                    </div>
-                ) : dataError ? (
-                    <div className="col-span-4 flex flex-col justify-center items-center py-16">
-                        <XCircle className="mx-auto text-red-500 mb-3" size={48} />
-                        <p className="text-red-600">Error loading dashboard data. Please try again later.</p>
-                    </div>
+                    <>
+                        {/* Loading Skeletons */}
+                        {[...Array(4)].map((_, index) => (
+                            <div key={index} className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 border border-slate-700/50 animate-pulse">
+                                <div className="flex items-start justify-between">
+                                    <div>
+                                        <div className="h-4 w-24 bg-slate-700 rounded mb-2"></div>
+                                        <div className="h-8 w-20 bg-slate-700 rounded mb-3"></div>
+                                        <div className="h-6 w-20 bg-slate-700 rounded"></div>
+                                    </div>
+                                    <div className="p-3 rounded-xl bg-slate-700/50">
+                                        <div className="w-6 h-6 bg-slate-700 rounded"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </>
                 ) : (
                     <>
                         {/* Total Bookings */}
-                        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
-                            <div className="flex items-center">
-                                <div className="flex-1">
-                                    <p className="text-gray-600 text-sm font-medium">Total Bookings</p>
-                                    <p className="text-2xl font-bold text-gray-900">{dashboardData?.totalBookings || 0}</p>
+                        <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 border border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:border-blue-500/30">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-slate-400 mb-2">Total Bookings</p>
+                                    <p className="text-3xl font-bold text-white">
+                                        {stats.totalBookings.toLocaleString()}
+                                    </p>
+                                    <div className="flex items-center mt-3">
+                                        <div className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs border border-blue-500/20">
+                                            <Calendar className="w-3 h-3 inline mr-1" />
+                                            Active
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="bg-blue-100 rounded-full p-3">
-                                    <Calendar className="text-blue-600" size={24} />
+                                <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                                    <Calendar className="w-6 h-6 text-blue-400" />
                                 </div>
                             </div>
                         </div>
 
                         {/* Total Revenue */}
-                        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
-                            <div className="flex items-center">
-                                <div className="flex-1">
-                                    <p className="text-gray-600 text-sm font-medium">Total Revenue</p>
-                                    <p className="text-2xl font-bold text-gray-900">
-                                        ${(dashboardData?.totalRevenue || 0).toLocaleString()}
+                        <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 border border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:border-emerald-500/30">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-slate-400 mb-2">Total Revenue</p>
+                                    <p className="text-3xl font-bold text-white">
+                                        ${stats.totalRevenue.toLocaleString()}
                                     </p>
+                                    <div className="flex items-center mt-3">
+                                        {stats.revenueChange > 0 ? (
+                                            <div className="flex items-center px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs border border-emerald-500/20">
+                                                <TrendingUpIcon className="w-3 h-3 mr-1" />
+                                                +{stats.revenueChange}%
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center px-3 py-1 rounded-full bg-slate-700/50 text-slate-400 text-xs border border-slate-600/50">
+                                                <BarChart3 className="w-3 h-3 mr-1" />
+                                                No change
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="bg-green-100 rounded-full p-3">
-                                    <DollarSign className="text-green-600" size={24} />
+                                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                                    <DollarSign className="w-6 h-6 text-emerald-400" />
                                 </div>
                             </div>
                         </div>
 
                         {/* Total Users */}
-                        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
-                            <div className="flex items-center">
-                                <div className="flex-1">
-                                    <p className="text-gray-600 text-sm font-medium">Total Users</p>
-                                    <p className="text-2xl font-bold text-gray-900">{dashboardData?.totalUsers || 0}</p>
+                        <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 border border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:border-purple-500/30">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-slate-400 mb-2">Total Users</p>
+                                    <p className="text-3xl font-bold text-white">
+                                        {stats.totalUsers.toLocaleString()}
+                                    </p>
+                                    <div className="flex items-center mt-3">
+                                        {stats.userChange > 0 ? (
+                                            <div className="flex items-center px-3 py-1 rounded-full bg-purple-500/10 text-purple-400 text-xs border border-purple-500/20">
+                                                <Users className="w-3 h-3 mr-1" />
+                                                +{stats.userChange}%
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center px-3 py-1 rounded-full bg-slate-700/50 text-slate-400 text-xs border border-slate-600/50">
+                                                <Users className="w-3 h-3 mr-1" />
+                                                0% change
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="bg-purple-100 rounded-full p-3">
-                                    <Users className="text-purple-600" size={24} />
+                                <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20">
+                                    <Users className="w-6 h-6 text-purple-400" />
                                 </div>
                             </div>
                         </div>
 
                         {/* Active Vehicles */}
-                        <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500">
-                            <div className="flex items-center">
-                                <div className="flex-1">
-                                    <p className="text-gray-600 text-sm font-medium">Active Vehicles</p>
-                                    <p className="text-2xl font-bold text-gray-900">{dashboardData?.activeVehicles || 0}</p>
+                        <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 border border-slate-700/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:border-amber-500/30">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-slate-400 mb-2">Active Vehicles</p>
+                                    <p className="text-3xl font-bold text-white">
+                                        {stats.activeVehicles.toLocaleString()}
+                                    </p>
+                                    <div className="flex items-center mt-3">
+                                        <div className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 text-xs border border-amber-500/20">
+                                            <Car className="w-3 h-3 inline mr-1" />
+                                            Available
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="bg-orange-100 rounded-full p-3">
-                                    <Car className="text-orange-600" size={24} />
+                                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                                    <Car className="w-6 h-6 text-amber-400" />
                                 </div>
                             </div>
                         </div>
@@ -227,81 +371,98 @@ const AdminDashboard: React.FC = () => {
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Recent Bookings Section */}
-                <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl shadow-xl border border-slate-700/50 p-6">
                     <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-semibold text-gray-900">Recent Bookings</h2>
-                        <button className="btn btn-sm bg-green-800 hover:bg-green-900 text-white border-none">
+                        <div>
+                            <h2 className="text-xl font-semibold text-white">Recent Bookings</h2>
+                            <p className="text-sm text-slate-400 mt-1">Latest customer reservations</p>
+                        </div>
+                        <Link 
+                            to="/admin/bookings"
+                            className="flex items-center px-4 py-2 rounded-xl bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 hover:text-white transition-all duration-300 border border-slate-600/50"
+                        >
+                            <Eye className="w-4 h-4 mr-2" />
                             View All
-                        </button>
+                        </Link>
                     </div>
                     
                     <div className="overflow-x-auto">
-                        <table className="table w-full">
+                        <table className="w-full">
                             <thead>
-                                <tr>
-                                    <th className="text-gray-600">Customer</th>
-                                    <th className="text-gray-600">Vehicle</th>
-                                    <th className="text-gray-600">Amount</th>
-                                    <th className="text-gray-600">Status</th>
-                                    <th className="text-gray-600">Date</th>
+                                <tr className="border-b border-slate-700/50">
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-400">Customer</th>
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-400">Vehicle</th>
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-400">Amount</th>
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-400">Status</th>
+                                    <th className="text-left py-3 px-4 text-sm font-medium text-slate-400">Date</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {bookingsDataIsLoading ? (
                                     <tr>
-                                        <td colSpan={5} className="text-center text-gray-500">
-                                            <span className="loading loading-spinner loading-sm"></span>
-                                            Loading...
-                                        </td>
-                                    </tr>
-                                ) : bookingsDataError ? (
-                                    <tr>
-                                        <td colSpan={5} className="text-center">
-                                            <XCircle className="mx-auto text-red-500 mb-2" size={32} />
-                                            <p className="text-red-600">Error loading bookings. Please try again later.</p>
+                                        <td colSpan={5} className="text-center py-12">
+                                            <div className="flex flex-col items-center justify-center">
+                                                <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-4" />
+                                                <p className="text-slate-400">Loading bookings...</p>
+                                            </div>
                                         </td>
                                     </tr>
                                 ) : recentBookings.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="text-center text-gray-500">
-                                            <Calendar className="mx-auto text-gray-400 mb-2" size={32} />
-                                            No recent bookings found.
+                                        <td colSpan={5} className="text-center py-12">
+                                            <div className="flex flex-col items-center justify-center">
+                                                <Calendar className="mx-auto text-slate-500 mb-4" size={40} />
+                                                <p className="text-slate-400">No recent bookings found.</p>
+                                            </div>
                                         </td>
                                     </tr>
                                 ) : (
-                                    recentBookings.map((booking: RecentBooking) => (
-                                        <tr key={booking.booking_id} className="hover:bg-gray-50">
-                                            <td>
-                                                <div>
-                                                    <div className="font-medium text-gray-900">
-                                                        {booking.customer_name}
+                                    recentBookings.map((booking: RecentBooking, index) => {
+                                        const statusStyles = getStatusStyles(booking.status);
+                                        return (
+                                            <tr 
+                                                key={booking.booking_id} 
+                                                className={`border-b border-slate-700/30 hover:bg-slate-800/50 transition-colors duration-200 ${
+                                                    index === recentBookings.length - 1 ? 'border-b-0' : ''
+                                                }`}
+                                            >
+                                                <td className="py-4 px-4">
+                                                    <div>
+                                                        <div className="font-medium text-white">
+                                                            {booking.customer_name}
+                                                        </div>
+                                                        <div className="text-sm text-slate-400 truncate max-w-[150px]">
+                                                            {booking.customer_email}
+                                                        </div>
                                                     </div>
-                                                    <div className="text-sm text-gray-500">
-                                                        {booking.customer_email}
+                                                </td>
+                                                <td className="py-4 px-4">
+                                                    <div className="font-medium text-white">
+                                                        {booking.vehicle_name}
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div className="font-medium text-gray-900">
-                                                    {booking.vehicle_name}
-                                                </div>
-                                                <div className="text-sm text-gray-500">
-                                                    {booking.vehicle_type}
-                                                </div>
-                                            </td>
-                                            <td className="font-semibold text-green-700">
-                                                ${booking.total_amount.toLocaleString()}
-                                            </td>
-                                            <td>
-                                                <span className={`badge ${getStatusColor(booking.status)} text-white`}>
-                                                    {formatStatusText(booking.status)}
-                                                </span>
-                                            </td>
-                                            <td className="text-gray-500 text-sm">
-                                                {formatDateTime(booking.created_at)}
-                                            </td>
-                                        </tr>
-                                    ))
+                                                    <div className="text-sm text-slate-400">
+                                                        {booking.vehicle_type}
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-4">
+                                                    <div className="font-semibold text-emerald-400">
+                                                        ${booking.total_amount.toLocaleString()}
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-4">
+                                                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${statusStyles.bg} ${statusStyles.text} border ${statusStyles.border}`}>
+                                                        <span className="mr-1.5">{statusStyles.icon}</span>
+                                                        {formatStatusText(booking.status)}
+                                                    </span>
+                                                </td>
+                                                <td className="py-4 px-4">
+                                                    <div className="text-sm text-slate-400">
+                                                        {formatDateTime(booking.created_at)}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 )}
                             </tbody>
                         </table>
@@ -309,20 +470,36 @@ const AdminDashboard: React.FC = () => {
                 </div>
 
                 {/* Quick Actions */}
-                <div className="bg-white rounded-lg shadow-md p-6">
-                    <h2 className="text-xl font-semibold text-gray-900 mb-6">Quick Actions</h2>
+                <div className="bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl shadow-xl border border-slate-700/50 p-6">
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 className="text-xl font-semibold text-white">Quick Actions</h2>
+                            <p className="text-sm text-slate-400 mt-1">Frequently used operations</p>
+                        </div>
+                        <div className="px-3 py-1.5 rounded-lg bg-slate-700/50 text-slate-300 text-xs border border-slate-600/50">
+                            4 Actions
+                        </div>
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                         {quickActions.map((action, index) => {
                             const IconComponent = action.icon;
                             return (
-                                <a
+                                <Link
                                     key={index}
-                                    href={action.href}
-                                    className={`btn ${action.color} text-white border-none flex flex-col items-center p-6 h-auto`}
+                                    to={action.href}
+                                    className={`group bg-gradient-to-br ${action.gradient} rounded-xl p-5 hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] border border-slate-700/50`}
                                 >
-                                    <IconComponent className="w-8 h-8 mb-2" />
-                                    {action.title}
-                                </a>
+                                    <div className="flex flex-col items-center text-center">
+                                        <div className="p-3 rounded-xl bg-white/10 backdrop-blur-sm mb-3 group-hover:bg-white/20 transition-colors">
+                                            <IconComponent className="w-6 h-6 text-white" />
+                                        </div>
+                                        <h3 className="font-semibold text-white mb-1">{action.title}</h3>
+                                        <p className="text-sm text-white/70">{action.description}</p>
+                                        <div className="mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                            <ArrowUpRight className="w-4 h-4 text-white/50" />
+                                        </div>
+                                    </div>
+                                </Link>
                             );
                         })}
                     </div>
@@ -330,26 +507,78 @@ const AdminDashboard: React.FC = () => {
             </div>
 
             {/* Performance Metrics */}
-            <div className="mt-8 bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-6">Performance Metrics</h2>
+            <div className="mt-8 bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl shadow-xl border border-slate-700/50 p-6">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 className="text-xl font-semibold text-white">Performance Metrics</h2>
+                        <p className="text-sm text-slate-400 mt-1">Growth and performance indicators</p>
+                    </div>
+                    <div className="px-3 py-1.5 rounded-lg bg-slate-700/50 text-slate-300 text-xs border border-slate-600/50">
+                        Last 30 Days
+                    </div>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                        <div className="text-2xl font-bold text-blue-700">
-                            {dashboardData?.revenueChange ? `${dashboardData.revenueChange}%` : 'N/A'}
+                    <div className="bg-gradient-to-br from-blue-900/20 to-blue-900/5 rounded-xl p-6 border border-blue-800/30 hover:border-blue-700/50 transition-all duration-300">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-sm font-medium text-slate-400">Revenue Growth</h3>
+                            {stats.revenueChange > 0 ? (
+                                <div className="flex items-center text-emerald-400 text-xs">
+                                    <TrendingUpIcon className="w-4 h-4 mr-1" />
+                                    Positive
+                                </div>
+                            ) : (
+                                <div className="flex items-center text-slate-400 text-xs">
+                                    <BarChart3 className="w-4 h-4 mr-1" />
+                                    Monitoring
+                                </div>
+                            )}
                         </div>
-                        <div className="text-sm text-blue-600 mt-1">Revenue Growth</div>
+                        <div className="text-3xl font-bold text-white mb-2">
+                            {stats.revenueChange ? `${stats.revenueChange}%` : '0%'}
+                        </div>
+                        <div className="text-sm text-slate-400">Month-over-month change</div>
                     </div>
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                        <div className="text-2xl font-bold text-green-700">
-                            {dashboardData?.bookingChange ? `${dashboardData.bookingChange}%` : 'N/A'}
+                    
+                    <div className="bg-gradient-to-br from-emerald-900/20 to-emerald-900/5 rounded-xl p-6 border border-emerald-800/30 hover:border-emerald-700/50 transition-all duration-300">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-sm font-medium text-slate-400">Booking Growth</h3>
+                            {stats.bookingChange > 0 ? (
+                                <div className="flex items-center text-emerald-400 text-xs">
+                                    <TrendingUpIcon className="w-4 h-4 mr-1" />
+                                    Positive
+                                </div>
+                            ) : (
+                                <div className="flex items-center text-slate-400 text-xs">
+                                    <BarChart3 className="w-4 h-4 mr-1" />
+                                    Monitoring
+                                </div>
+                            )}
                         </div>
-                        <div className="text-sm text-green-600 mt-1">Booking Growth</div>
+                        <div className="text-3xl font-bold text-white mb-2">
+                            {stats.bookingChange ? `${stats.bookingChange}%` : '0%'}
+                        </div>
+                        <div className="text-sm text-slate-400">New bookings growth</div>
                     </div>
-                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 text-center">
-                        <div className="text-2xl font-bold text-purple-700">
-                            {dashboardData?.userChange ? `${dashboardData.userChange}%` : 'N/A'}
+                    
+                    <div className="bg-gradient-to-br from-purple-900/20 to-purple-900/5 rounded-xl p-6 border border-purple-800/30 hover:border-purple-700/50 transition-all duration-300">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-sm font-medium text-slate-400">User Growth</h3>
+                            {stats.userChange > 0 ? (
+                                <div className="flex items-center text-emerald-400 text-xs">
+                                    <TrendingUpIcon className="w-4 h-4 mr-1" />
+                                    Positive
+                                </div>
+                            ) : (
+                                <div className="flex items-center text-slate-400 text-xs">
+                                    <BarChart3 className="w-4 h-4 mr-1" />
+                                    Monitoring
+                                </div>
+                            )}
                         </div>
-                        <div className="text-sm text-purple-600 mt-1">User Growth</div>
+                        <div className="text-3xl font-bold text-white mb-2">
+                            {stats.userChange ? `${stats.userChange}%` : '0%'}
+                        </div>
+                        <div className="text-sm text-slate-400">New user registrations</div>
                     </div>
                 </div>
             </div>

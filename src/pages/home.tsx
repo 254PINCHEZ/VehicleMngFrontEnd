@@ -1,7 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import Header from '../components/Header';
 import Footer from '../components/footer';
-import Header from '../../src/components/Header'
+// import Footer from '../components/footer';
+// import Header from '../../src/components/Header'
 
 type Vehicle = {
   id: number;
@@ -407,7 +409,7 @@ const Home: React.FC = () => {
         </div>
       </section>
 
-      <Footer />
+      <Footer/>
     </div>
   );
 };

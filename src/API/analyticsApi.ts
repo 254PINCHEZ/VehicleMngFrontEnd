@@ -1,6 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { AnalyticsData, AdvancedAnalytics, ApiResponse, KpiMetrics } from '../types/types';
 import { apiDomain } from '../ApiDomain/ApiDomain';
+import type { RootState } from '../store/store';
 
 // Proper interface definition
 export interface AnalyticsData {
@@ -33,26 +34,46 @@ export const analyticsApi = createApi({
   reducerPath: 'analyticsApi',
   baseQuery: fetchBaseQuery({ 
     baseUrl: apiDomain, // This should be "http://localhost:3001"
-    prepareHeaders: (headers) => {
-      const token = localStorage.getItem('token');
-      console.log('Analytics API - Token check:', token ? 'Token exists' : 'No token found');
+    prepareHeaders: (headers, { getState }) => {
+      // Get token from Redux state first
+      const state = getState() as RootState;
+      const reduxToken = state.auth?.token;
+      
+      console.log('Analytics API - Token check - Redux:', reduxToken ? 'Token exists' : 'No token');
+      console.log('Analytics API - Token check - localStorage:', localStorage.getItem('token') ? 'Token exists' : 'No token');
       console.log('API Domain is:', apiDomain);
       
+      let token = reduxToken;
+      
+      // If no valid token in Redux, check localStorage
+      if (!token || token === 'Token exists') {
+        token = localStorage.getItem('token');
+      }
+      
+      // Log token details for debugging
       if (token) {
+        console.log('Token type:', typeof token);
+        console.log('Token length:', token.length);
+        console.log('Token starts with Bearer?:', token.startsWith('Bearer '));
+      }
+      
+      if (token && token !== 'Token exists') {
         // Handle both cases: token might already have "Bearer " prefix
         const authToken = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
         headers.set('Authorization', authToken);
-        console.log('Setting Authorization header with token');
+        console.log('✅ Setting Authorization header with token:', authToken.substring(0, 30) + '...');
       } else {
-        console.warn('No authentication token found for analytics API');
+        console.warn('⚠️ No valid authentication token found for analytics API');
+        console.log('Token value:', token);
       }
+      
       headers.set('Content-Type', 'application/json');
       return headers;
     },
   }),
   tagTypes: ['Analytics'],
   endpoints: (builder) => ({
-    // Try different endpoint variations based on what your backend expects
+    // Get analytics data with flexible endpoint detection
     getAnalyticsData: builder.query<AnalyticsData, { 
       period?: 'day' | 'week' | 'month' | 'quarter' | 'year';
       startDate?: string;
@@ -62,14 +83,16 @@ export const analyticsApi = createApi({
         console.log('Fetching analytics with params:', params);
         console.log('API Domain:', apiDomain);
         
-        // Try different endpoint patterns. Based on your logs, your backend might expect:
-        // Option 1: /api/analytics (most common)
-        // Option 2: /analytics (if apiDomain already includes /api)
-        // Option 3: /dashboard/analytics
-        // Option 4: /admin/analytics
+        // Try multiple endpoint patterns
+        const endpointsToTry = [
+          'api/analytics',
+          'analytics',
+          'dashboard/analytics',
+          'admin/analytics'
+        ];
         
-        // First, let's check what apiDomain actually is
-        const endpoint = 'api/analytics'; // Try this first - most common pattern
+        // Use the first endpoint for now, could implement fallback logic
+        const endpoint = endpointsToTry[0];
         
         console.log('Trying endpoint:', endpoint);
         console.log('Full URL will be:', `${apiDomain}/${endpoint}`);
@@ -81,9 +104,29 @@ export const analyticsApi = createApi({
         };
       },     
       providesTags: ['Analytics'],
+      // Handle 401 errors
+      transformErrorResponse: (response: any) => {
+        console.error('❌ Analytics API Error:', response);
+        
+        if (response?.status === 401) {
+          console.error('🔒 401 Unauthorized - Clearing invalid tokens');
+          localStorage.removeItem('token');
+          sessionStorage.removeItem('token');
+          
+          return {
+            ...response,
+            data: {
+              ...response.data,
+              message: 'Authentication failed. Please login again.'
+            }
+          };
+        }
+        
+        return response;
+      }
     }),
 
-    // Alternative: If you want to try multiple endpoints, you can create multiple queries
+    // Alternative endpoints for testing
     getAnalyticsDataAlt1: builder.query<AnalyticsData, { 
       period?: 'day' | 'week' | 'month' | 'quarter' | 'year';
     }>({
@@ -112,7 +155,7 @@ export const analyticsApi = createApi({
       includePredictions?: boolean;
     }>({
       query: (params) => ({
-        url: 'api/analytics/advanced', // Added api/ prefix
+        url: 'api/analytics/advanced',
         method: 'GET',
         params,
       }),     
@@ -127,7 +170,7 @@ export const analyticsApi = createApi({
       period?: 'week' | 'month' | 'quarter' | 'year';
     }>({
       query: (params) => ({
-        url: 'api/analytics/kpis', // Added api/ prefix
+        url: 'api/analytics/kpis',
         method: 'GET',
         params,
       }),     
@@ -146,7 +189,7 @@ export const analyticsApi = createApi({
       monthlyRevenueTrend: Array<{ month: string; revenue: number }>;
       revenueGrowthRate: number;
     }, { period: 'month' | 'quarter' | 'year' }>({
-      query: ({ period }) => `api/analytics/revenue?period=${period}`, // Added api/ prefix    
+      query: ({ period }) => `api/analytics/revenue?period=${period}`,    
       providesTags: ['Analytics'],
       transformResponse: (response: ApiResponse<any>) => {
         return response.data || response;
@@ -156,7 +199,7 @@ export const analyticsApi = createApi({
     // Add a simple test endpoint to check if API is working
     testAnalyticsEndpoint: builder.query<{ message: string }, void>({
       query: () => ({
-        url: 'api/analytics/health', // Try a health check endpoint
+        url: 'api/analytics/health',
         method: 'GET',
       }),
     }),
@@ -164,10 +207,18 @@ export const analyticsApi = createApi({
     // Refresh analytics cache
     refreshAnalyticsCache: builder.mutation<ApiResponse<{ message: string }>, void>({
       query: () => ({
-        url: 'api/analytics/cache/refresh', // Added api/ prefix
+        url: 'api/analytics/cache/refresh',
         method: 'POST',
       }),
       invalidatesTags: ['Analytics']
+    }),
+
+    // Test authentication endpoint
+    testAuth: builder.query<{ authenticated: boolean; user?: any }, void>({
+      query: () => ({
+        url: 'api/auth/verify',
+        method: 'GET',
+      }),
     }),
   }),
 });
@@ -175,11 +226,12 @@ export const analyticsApi = createApi({
 // Export hooks
 export const {
   useGetAnalyticsDataQuery,
-  useGetAnalyticsDataAlt1Query, // Alternative 1
-  useGetAnalyticsDataAlt2Query, // Alternative 2
+  useGetAnalyticsDataAlt1Query,
+  useGetAnalyticsDataAlt2Query,
   useGetAdvancedAnalyticsQuery,
   useGetKpiMetricsQuery,
   useGetRevenueAnalyticsQuery,
   useTestAnalyticsEndpointQuery,
+  useTestAuthQuery,
   useRefreshAnalyticsCacheMutation,
 } = analyticsApi;

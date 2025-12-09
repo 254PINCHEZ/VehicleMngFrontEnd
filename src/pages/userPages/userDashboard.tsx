@@ -9,10 +9,10 @@ const UserDashboard: React.FC = () => {
 
     // Mock data for dashboard stats - replace with actual API calls
     const dashboardStats = {
-        totalBookings: 10,
+        totalBookings: 15,
         upcomingBookings: 2,
-        totalSpent: 4486,
-        activeTickets: 9,
+        totalSpent: 10945,
+        activeTickets: 14,
     }
 
     const quickActions = [

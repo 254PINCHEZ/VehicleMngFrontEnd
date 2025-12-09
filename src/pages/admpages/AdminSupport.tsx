@@ -6,26 +6,16 @@ import Swal from 'sweetalert2';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store/store';
 import { skipToken } from '@reduxjs/toolkit/query';
+import type { SupportTicket as ImportedSupportTicket } from '../../types/types'; // Import the type
 
-// Define TypeScript interface for support tickets
-interface SupportTicket {
-    ticket_id: number;
-    ticket_reference: string;
-    customer_name: string;
-    customer_email: string;
-    subject: string;
-    description?: string;
-    status: string;
-    priority: string;
-    category: string;
-    created_at: string;
-    phone?: string;
-}
+// Use the imported type instead of redefining it
+// The imported type has ticket_id as string (UUID)
+type SupportTicket = ImportedSupportTicket;
 
 const AdminSupport: React.FC = () => {
     const { isAuthenticated } = useSelector((state: RootState) => state.auth);
     
-    // RTK Query Hook to fetch all support tickets - matches your reference pattern
+    // RTK Query Hook to fetch all support tickets
     const { 
         data: allTickets, 
         isLoading: ticketsIsLoading, 
@@ -106,8 +96,8 @@ const AdminSupport: React.FC = () => {
         );
     };
 
-    // Handle status update - matches your AllOrders.tsx pattern
-    const handleStatusUpdate = async (ticketId: number, currentStatus: string) => {
+    // Handle status update - FIXED: ticket_id is now string
+    const handleStatusUpdate = async (ticketId: string, currentStatus: string) => {
         const statusOptions = ['open', 'in_progress', 'resolved', 'closed'];
         const currentIndex = statusOptions.indexOf(currentStatus);
         const nextStatuses = statusOptions.slice(currentIndex + 1);
@@ -140,6 +130,7 @@ const AdminSupport: React.FC = () => {
                 const res = await updateTicketStatus({ ticket_id: ticketId, status: newStatus }).unwrap();
                 Swal.fire("Updated", res.message, "success");
             } catch (error) {
+                console.error('Error updating ticket status:', error);
                 Swal.fire("Error", "Failed to update ticket status", "error");
             }
         }
@@ -154,9 +145,9 @@ const AdminSupport: React.FC = () => {
                     <p><strong>Description:</strong> ${ticket.description || 'No description provided'}</p>
                     <p><strong>Customer:</strong> ${ticket.customer_name} (${ticket.customer_email})</p>
                     <p><strong>Created:</strong> ${formatDateTime(ticket.created_at)}</p>
-                    <p><strong>Priority:</strong> ${ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1)}</p>
-                    <p><strong>Category:</strong> ${ticket.category.charAt(0).toUpperCase() + ticket.category.slice(1)}</p>
-                    <p><strong>Status:</strong> ${ticket.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}</p>
+                    <p><strong>Priority:</strong> ${ticket.priority ? ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1) : 'Not set'}</p>
+                    <p><strong>Category:</strong> ${ticket.category ? ticket.category.charAt(0).toUpperCase() + ticket.category.slice(1) : 'General'}</p>
+                    <p><strong>Status:</strong> ${ticket.status ? ticket.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : 'Open'}</p>
                     ${ticket.phone ? `<p><strong>Phone:</strong> ${ticket.phone}</p>` : ''}
                 </div>
             `,
@@ -213,35 +204,35 @@ const AdminSupport: React.FC = () => {
                             <tbody>
                                 {allTickets.map((ticket: SupportTicket) => (
                                     <tr key={ticket.ticket_id} className="hover:bg-gray-50">
-                                        <td className="font-bold text-gray-800">#{ticket.ticket_reference}</td>
+                                        <td className="font-bold text-gray-800">#{ticket.ticket_reference || ticket.ticket_id.substring(0, 8)}</td>
                                         <td>
                                             <div>
                                                 <div className="font-semibold text-gray-800 flex items-center gap-1">
                                                     <User size={14} />
-                                                    {ticket.customer_name}
+                                                    {ticket.customer_name || 'Unknown Customer'}
                                                 </div>
                                                 <div className="text-sm text-gray-500 flex items-center gap-1">
                                                     <Mail size={12} />
-                                                    {ticket.customer_email}
+                                                    {ticket.customer_email || 'No email'}
                                                 </div>
                                             </div>
                                         </td>
                                         <td>
-                                            <div className="font-medium text-gray-900">{ticket.subject}</div>
+                                            <div className="font-medium text-gray-900">{ticket.subject || 'No subject'}</div>
                                             <div className="text-sm text-gray-500 truncate max-w-xs">
                                                 {ticket.description || 'No description'}
                                             </div>
                                         </td>
                                         <td>
-                                            {getCategoryBadge(ticket.category)}
+                                            {getCategoryBadge(ticket.category || 'general')}
                                         </td>
                                         <td>
-                                            {getStatusBadge(ticket.status)}
+                                            {getStatusBadge(ticket.status || 'open')}
                                         </td>
                                         <td className="text-sm text-gray-600">
                                             <div className="flex items-center gap-1">
                                                 <Calendar size={14} />
-                                                {formatDateTime(ticket.created_at)}
+                                                {ticket.created_at ? formatDateTime(ticket.created_at) : 'Unknown date'}
                                             </div>
                                         </td>
                                         <td>
@@ -254,7 +245,7 @@ const AdminSupport: React.FC = () => {
                                                     <Eye size={14} />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleStatusUpdate(ticket.ticket_id, ticket.status)}
+                                                    onClick={() => handleStatusUpdate(ticket.ticket_id, ticket.status || 'open')}
                                                     className="btn btn-ghost btn-xs text-blue-600 tooltip"
                                                     data-tip="Update Status"
                                                 >

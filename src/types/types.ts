@@ -49,21 +49,33 @@ export type PaymentFormValues = {
     amount: number;
     payment_method: string;
 }
-
-// Core Entity Types
 export interface User {
-    user_id: number;
+    user_id: number | string;
     first_name: string;
     last_name: string;
     email: string;
-    contact_phone?: string;
-    address?: string;
-    role: 'user' | 'admin';
-    created_at: string;
-    updated_at: string;
     phone_number?: string;
-    name?: string; // For compatibility with existing code
+    role: string;
+    created_at: string;
+    updated_at?: string;
+    address?: string;
+    status?: string;
 }
+
+// Core Entity Types
+// export interface User {
+//     user_id: number;
+//     first_name: string;
+//     last_name: string;
+//     email: string;
+//     contact_phone?: string;
+//     address?: string;
+//     role: 'user' | 'admin';
+//     created_at: string;
+//     updated_at: string;
+//     phone_number?: string;
+//     name?: string; // For compatibility with existing code
+// }
 
 export interface Vehicle {
     vehicle_id: string;

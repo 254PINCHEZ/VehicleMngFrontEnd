@@ -1,6 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { ApiResponse } from '../types/types';
 import { apiDomain } from '../ApiDomain/ApiDomain';
+import type { RootState } from '../store/store';
 
 export interface AdminDashboardStats {
   totalBookings: number;
@@ -40,23 +41,100 @@ export const dashboardDataApi = createApi({
   reducerPath: 'dashboardDataApi',
   baseQuery: fetchBaseQuery({ 
     baseUrl: `${apiDomain}/api`,
-    prepareHeaders: (headers) => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        headers.set('authorization', `Bearer ${token}`);
+    prepareHeaders: (headers, { getState }) => {
+      // Get token from Redux state first
+      const state = getState() as RootState;
+      const reduxToken = state.auth?.token;
+      
+      let token = reduxToken;
+      
+      // DEBUG: Log token status from both sources
+      console.log('🔐 Dashboard API - Token check - Redux:', reduxToken ? 'Token exists' : 'No token');
+      console.log('🔐 Dashboard API - Token check - localStorage:', localStorage.getItem('token') ? 'Token exists' : 'No token');
+      
+      // If no valid token in Redux, check localStorage
+      if (!token || token === 'Token exists') {
+        token = localStorage.getItem('token');
       }
+      
+      // Debug token details
+      if (token) {
+        console.log('Token details:', {
+          type: typeof token,
+          length: token.length,
+          startsWithBearer: token.startsWith('Bearer '),
+          first20Chars: token.substring(0, 20) + '...'
+        });
+      }
+      
+      if (token && token !== 'Token exists') {
+        // CRITICAL FIX: Use capital 'A' in Authorization (some backends are case-sensitive)
+        const authToken = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+        headers.set('Authorization', authToken);
+        console.log('✅ Authorization header set with token (first 30 chars):', authToken.substring(0, 30) + '...');
+      } else {
+        console.warn('⚠️ No valid token available for dashboard API');
+        console.log('Token value:', token);
+      }
+      
       headers.set('Content-Type', 'application/json');
       return headers;
     },
   }),
   tagTypes: ['DashboardStats'],
   endpoints: (builder) => ({
-    // Fetch admin dashboard data
+    // Fetch admin dashboard data with enhanced error handling
     getAdminDashboardData: builder.query<AdminDashboardStats, void>({
-      query: () => '/dashboard/admin',     
+      query: () => {
+        console.log('🚀 Fetching dashboard data from /dashboard/admin');
+        console.log('Full URL:', `${apiDomain}/api/dashboard/admin`);
+        return '/dashboard/admin';
+      },     
       providesTags: ['DashboardStats'],
       transformResponse: (response: ApiResponse<AdminDashboardStats>) => {
+        console.log('✅ Dashboard API Success:', response);
         return response.data || response;
+      },
+      // Enhanced error handling
+      transformErrorResponse: (response: any) => {
+        console.error('❌ Dashboard API Error:', {
+          status: response?.status,
+          statusText: response?.statusText,
+          data: response?.data,
+          originalStatus: response?.originalStatus
+        });
+        
+        // Handle 401 Unauthorized
+        if (response?.status === 401) {
+          console.error('🔒 401 Unauthorized - Token may be invalid or expired');
+          
+          // Clear all token storage
+          localStorage.removeItem('token');
+          sessionStorage.removeItem('token');
+          
+          return {
+            ...response,
+            data: {
+              ...response.data,
+              message: 'Authentication failed. Please login again.',
+              code: 'AUTH_REQUIRED'
+            }
+          };
+        }
+        
+        // Handle network errors
+        if (response?.status === 'FETCH_ERROR') {
+          console.error('🌐 Network Error - Unable to connect to server');
+          return {
+            ...response,
+            data: {
+              message: 'Unable to connect to server. Please check your internet connection.',
+              code: 'NETWORK_ERROR'
+            }
+          };
+        }
+        
+        return response;
       }
     }),
 
@@ -221,6 +299,15 @@ export const dashboardDataApi = createApi({
       }),
       invalidatesTags: ['DashboardStats']
     }),
+
+    // Test authentication with a simple endpoint
+    testAuthStatus: builder.query<{ 
+      authenticated: boolean; 
+      user?: any; 
+      tokenValid: boolean;
+    }, void>({
+      query: () => '/dashboard/verify-auth',
+    }),
   }),
 });
 
@@ -236,4 +323,5 @@ export const {
   useGetGeographicAnalyticsQuery,
   useExportDashboardDataMutation,
   useRefreshDashboardCacheMutation,
+  useTestAuthStatusQuery,
 } = dashboardDataApi;

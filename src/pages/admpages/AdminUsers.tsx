@@ -7,36 +7,32 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../../store/store';
 import { skipToken } from '@reduxjs/toolkit/query';
 
-// Define TypeScript interface for users
 interface User {
-    user_id: number;
+    user_id: string;
     first_name: string;
     last_name: string;
     email: string;
-    phone_number?: string;
-    user_type: string;
+    contact_phone?: string;
+    role: string;
+    address?: string;
     created_at: string;
-    status?: string;
+    updated_at: string;
 }
 
 interface EditUserData {
-    first_name: string;
-    last_name: string;
-    email: string;
-    phone_number?: string;
-    user_type: string;
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    contact_phone?: string;
+    address?: string;
+    role?: string;
 }
 
 const AdminUsers: React.FC = () => {
     const { isAuthenticated } = useSelector((state: RootState) => state.auth);
-    const [editingUserId, setEditingUserId] = useState<number | null>(null);
-    const [editFormData, setEditFormData] = useState<EditUserData>({
-        first_name: '',
-        last_name: '',
-        email: '',
-        phone_number: '',
-        user_type: 'customer'
-    });
+    const [editingUserId, setEditingUserId] = useState<string | null>(null);
+    const [editFormData, setEditFormData] = useState<EditUserData>({});
+    const [originalUserData, setOriginalUserData] = useState<User | null>(null);
 
     // RTK Query Hook to fetch all users
     const { 
@@ -48,8 +44,11 @@ const AdminUsers: React.FC = () => {
         isAuthenticated ? undefined : skipToken
     );
 
-    // RTK mutation to update user details
-    const [updateUsersDetails] = userApi.useUpdateUserRoleStatusMutation();
+    // RTK mutation to update user details (PATCH method)
+    const [updateUserDetails] = userApi.useUpdateUsersDetailsMutation();
+    
+    // RTK mutation to update user role (PATCH method)
+    const [updateUserRole] = userApi.useUpdateUserRoleStatusMutation();
     
     // RTK mutation to delete user
     const [deleteUser] = userApi.useDeleteUserMutation();
@@ -57,25 +56,22 @@ const AdminUsers: React.FC = () => {
     // Start editing a user
     const handleEditClick = (user: User) => {
         setEditingUserId(user.user_id);
+        setOriginalUserData(user);
         setEditFormData({
             first_name: user.first_name,
             last_name: user.last_name,
             email: user.email,
-            phone_number: user.phone_number || '',
-            user_type: user.user_type
+            contact_phone: user.contact_phone || '',
+            address: user.address || '',
+            role: user.role
         });
     };
 
     // Cancel editing
     const handleCancelEdit = () => {
         setEditingUserId(null);
-        setEditFormData({
-            first_name: '',
-            last_name: '',
-            email: '',
-            phone_number: '',
-            user_type: 'customer'
-        });
+        setOriginalUserData(null);
+        setEditFormData({});
     };
 
     // Handle form input changes
@@ -87,37 +83,75 @@ const AdminUsers: React.FC = () => {
         }));
     };
 
-    // Save edited user data
-    const handleSaveEdit = async (userId: number) => {
-        if (!editFormData.first_name.trim() || !editFormData.last_name.trim() || !editFormData.email.trim()) {
+    // Handle textarea changes for address
+    const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setEditFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    // Save edited user data using PATCH
+    const handleSaveEdit = async (userId: string) => {
+        // Check if any fields have changed
+        const changedFields: EditUserData = {};
+        const original = originalUserData;
+        
+        if (!original) return;
+
+        if (editFormData.first_name && editFormData.first_name !== original.first_name) {
+            changedFields.first_name = editFormData.first_name;
+        }
+        if (editFormData.last_name && editFormData.last_name !== original.last_name) {
+            changedFields.last_name = editFormData.last_name;
+        }
+        if (editFormData.email && editFormData.email !== original.email) {
+            changedFields.email = editFormData.email;
+        }
+        if (editFormData.contact_phone && editFormData.contact_phone !== (original.contact_phone || '')) {
+            changedFields.contact_phone = editFormData.contact_phone;
+        }
+        if (editFormData.address && editFormData.address !== (original.address || '')) {
+            changedFields.address = editFormData.address;
+        }
+        if (editFormData.role && editFormData.role !== original.role) {
+            changedFields.role = editFormData.role;
+        }
+
+        if (Object.keys(changedFields).length === 0) {
             Swal.fire({
-                title: 'Validation Error',
-                text: 'Please fill in all required fields (First Name, Last Name, Email)',
-                icon: 'error',
-                confirmButtonColor: '#ef4444'
+                title: 'No Changes',
+                text: 'No fields have been modified',
+                icon: 'info',
+                confirmButtonColor: '#3b82f6'
             });
             return;
         }
 
-        // Email validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(editFormData.email)) {
-            Swal.fire({
-                title: 'Invalid Email',
-                text: 'Please enter a valid email address',
-                icon: 'error',
-                confirmButtonColor: '#ef4444'
-            });
-            return;
+        // Validate email if it's being changed
+        if (changedFields.email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(changedFields.email)) {
+                Swal.fire({
+                    title: 'Invalid Email',
+                    text: 'Please enter a valid email address',
+                    icon: 'error',
+                    confirmButtonColor: '#ef4444'
+                });
+                return;
+            }
         }
 
         try {
             const updateData = {
                 user_id: userId,
-                ...editFormData
+                ...changedFields
             };
 
-            await updateUsersDetails(updateData).unwrap();
+            console.log('Sending PATCH update data:', updateData);
+            
+            await updateUserDetails(updateData).unwrap();
             
             Swal.fire({
                 title: 'Success!',
@@ -127,32 +161,33 @@ const AdminUsers: React.FC = () => {
             });
 
             setEditingUserId(null);
-            refetchUsers(); // Refresh the user list
+            setOriginalUserData(null);
+            refetchUsers();
         } catch (error: any) {
             console.error('Update error:', error);
             Swal.fire({
                 title: 'Error!',
-                text: error?.data?.message || 'Failed to update user details. Please try again.',
+                text: error?.data?.error || error?.data?.message || 'Failed to update user details.',
                 icon: 'error',
                 confirmButtonColor: '#ef4444'
             });
         }
     };
 
-    // Handle user type update (keeping your existing functionality)
-    const handleUserTypeUpdate = async (userId: number, currentUserType: string, userName: string) => {
-        const userTypes = ['customer', 'admin', 'staff'];
-        const typeOptions = userTypes.reduce((acc, type) => {
-            acc[type] = type.charAt(0).toUpperCase() + type.slice(1);
+    // Handle user role update (PATCH method) - UPDATED ROLES
+    const handleUserRoleUpdate = async (userId: string, currentRole: string, userName: string) => {
+        const validRoles = ['admin', 'customer', 'user']; // Changed from 'staff' to 'user'
+        const roleOptions = validRoles.reduce((acc, role) => {
+            acc[role] = role.charAt(0).toUpperCase() + role.slice(1);
             return acc;
         }, {} as Record<string, string>);
 
-        const { value: newUserType } = await Swal.fire({
+        const { value: newRole } = await Swal.fire({
             title: `Update User Role for ${userName}`,
-            text: `Current role: ${currentUserType.charAt(0).toUpperCase() + currentUserType.slice(1)}`,
+            text: `Current role: ${currentRole.charAt(0).toUpperCase() + currentRole.slice(1)}`,
             input: 'select',
-            inputOptions: typeOptions,
-            inputValue: currentUserType,
+            inputOptions: roleOptions,
+            inputValue: currentRole,
             showCancelButton: true,
             confirmButtonText: 'Update Role',
             confirmButtonColor: '#3b82f6',
@@ -161,30 +196,51 @@ const AdminUsers: React.FC = () => {
                 if (!value) {
                     return 'Please select a user role';
                 }
-                if (value === currentUserType) {
+                if (value === currentRole) {
                     return 'Please select a different user role';
+                }
+                if (!validRoles.includes(value)) {
+                    return `Invalid role. Must be one of: ${validRoles.join(', ')}`;
                 }
             }
         });
 
-        if (newUserType) {
+        if (newRole) {
             try {
                 const updateData = { 
                     user_id: userId,
-                    user_type: newUserType 
+                    role: newRole
                 };
-                await updateUsersDetails(updateData).unwrap();
+                
+                console.log('Updating user role with data:', updateData);
+                
+                await updateUserRole(updateData).unwrap();
+                
                 Swal.fire({
                     title: 'Success!',
-                    text: `User role updated to ${newUserType}`,
+                    text: `User role updated to ${newRole.charAt(0).toUpperCase() + newRole.slice(1)}`,
                     icon: 'success',
                     confirmButtonColor: '#10b981'
                 });
-                refetchUsers(); // Refresh the user list
+                
+                refetchUsers();
             } catch (error: any) {
+                console.error('Role update error:', error);
+                let errorMessage = 'Failed to update user role.';
+                
+                if (error?.data?.error) {
+                    errorMessage = error.data.error;
+                } else if (error?.data?.message) {
+                    errorMessage = error.data.message;
+                } else if (error?.status === 400) {
+                    errorMessage = 'Bad request. Please check the role value.';
+                } else if (error?.status === 500) {
+                    errorMessage = 'Server error. Please try again later.';
+                }
+
                 Swal.fire({
                     title: 'Error!',
-                    text: 'Failed to update user role. Please try again.',
+                    text: errorMessage,
                     icon: 'error',
                     confirmButtonColor: '#ef4444'
                 });
@@ -192,8 +248,8 @@ const AdminUsers: React.FC = () => {
         }
     };
 
-    // Handle delete user - now with actual API call
-    const handleDeleteUser = async (userId: number, userName: string) => {
+    // Handle delete user
+    const handleDeleteUser = async (userId: string, userName: string) => {
         Swal.fire({
             title: "Are you sure?",
             text: `You want to delete user "${userName}"? This action cannot be undone.`,
@@ -206,18 +262,18 @@ const AdminUsers: React.FC = () => {
             showLoaderOnConfirm: true,
             preConfirm: async () => {
                 try {
-                    // Call the delete API
                     await deleteUser({ user_id: userId }).unwrap();
                     return true;
-                } catch (error) {
-                    Swal.showValidationMessage('Failed to delete user. Please try again.');
+                } catch (error: any) {
+                    Swal.showValidationMessage(
+                        error?.data?.error || error?.data?.message || 'Failed to delete user.'
+                    );
                     return false;
                 }
             },
             allowOutsideClick: () => !Swal.isLoading()
         }).then(async (result) => {
             if (result.isConfirmed) {
-                // Refresh user list
                 await refetchUsers();
                 Swal.fire({
                     title: "Deleted!",
@@ -229,7 +285,7 @@ const AdminUsers: React.FC = () => {
         });
     };
 
-    // Format date - matches your pattern
+    // Format date
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -238,15 +294,15 @@ const AdminUsers: React.FC = () => {
         });
     };
 
-    // Get user type badge - matches your pattern
-    const getUserTypeBadge = (userType: string) => {
-        const typeConfig = {
+    // Get user role badge - UPDATED FOR 'user' ROLE
+    const getUserRoleBadge = (role: string) => {
+        const roleConfig = {
             customer: { color: 'bg-blue-100 text-blue-800', label: 'Customer' },
             admin: { color: 'bg-purple-100 text-purple-800', label: 'Admin' },
-            staff: { color: 'bg-green-100 text-green-800', label: 'Staff' }
+            user: { color: 'bg-green-100 text-green-800', label: 'User' } // Changed from 'staff' to 'user'
         };
 
-        const config = typeConfig[userType as keyof typeof typeConfig] || typeConfig.customer;
+        const config = roleConfig[role as keyof typeof roleConfig] || roleConfig.customer;
 
         return (
             <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${config.color}`}>
@@ -259,31 +315,43 @@ const AdminUsers: React.FC = () => {
     // Render edit form or display data
     const renderUserField = (user: User, field: keyof EditUserData) => {
         if (editingUserId === user.user_id) {
+            const currentValue = editFormData[field] || '';
+            
             switch (field) {
                 case 'first_name':
                 case 'last_name':
                 case 'email':
-                case 'phone_number':
+                case 'contact_phone':
                     return (
                         <input
                             type="text"
                             name={field}
-                            value={editFormData[field] || ''}
+                            value={currentValue}
                             onChange={handleInputChange}
                             className="input input-bordered input-sm w-full"
                         />
                     );
-                case 'user_type':
+                case 'address':
+                    return (
+                        <textarea
+                            name="address"
+                            value={currentValue}
+                            onChange={handleTextareaChange}
+                            className="textarea textarea-bordered textarea-sm w-full h-20"
+                            rows={3}
+                        />
+                    );
+                case 'role':
                     return (
                         <select
-                            name="user_type"
-                            value={editFormData.user_type}
+                            name="role"
+                            value={currentValue}
                             onChange={handleInputChange}
                             className="select select-bordered select-sm w-full"
                         >
                             <option value="customer">Customer</option>
                             <option value="admin">Admin</option>
-                            <option value="staff">Staff</option>
+                            <option value="user">User</option> {/* Changed from 'staff' to 'user' */}
                         </select>
                     );
                 default:
@@ -299,10 +367,16 @@ const AdminUsers: React.FC = () => {
                 return <div className="font-semibold text-gray-800">{user.last_name}</div>;
             case 'email':
                 return <div className="text-gray-700">{user.email}</div>;
-            case 'phone_number':
-                return <div className="text-gray-700">{user.phone_number || 'N/A'}</div>;
-            case 'user_type':
-                return getUserTypeBadge(user.user_type);
+            case 'contact_phone':
+                return <div className="text-gray-700">{user.contact_phone || 'N/A'}</div>;
+            case 'address':
+                return (
+                    <div className="text-gray-700 max-w-xs truncate" title={user.address}>
+                        {user.address || 'N/A'}
+                    </div>
+                );
+            case 'role':
+                return getUserRoleBadge(user.role);
             default:
                 return null;
         }
@@ -310,7 +384,6 @@ const AdminUsers: React.FC = () => {
 
     return (
         <AdminDashboardLayout>
-            {/* Header */}
             <div className="flex items-center gap-3 mb-6">
                 <div className="p-2 bg-blue-100 rounded-lg">
                     <Users className="text-blue-600" size={24} />
@@ -318,7 +391,6 @@ const AdminUsers: React.FC = () => {
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-800">User Management</h1>
             </div>
 
-            {/* Loading State */}
             {usersIsLoading ? (
                 <div className="flex justify-center items-center py-16">
                     <span className="loading loading-spinner loading-lg text-blue-600"></span>
@@ -328,17 +400,23 @@ const AdminUsers: React.FC = () => {
                 <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
                     <XCircle className="mx-auto text-red-500 mb-3" size={48} />
                     <h3 className="text-lg font-semibold text-red-800 mb-2">Error Loading Users</h3>
-                    <p className="text-red-600">Unable to fetch users. Please try again later.</p>
+                    <p className="text-red-600">
+                        {(error as any)?.data?.error || (error as any)?.data?.message || 'Unable to fetch users.'}
+                    </p>
+                    <button 
+                        onClick={() => refetchUsers()} 
+                        className="btn btn-sm btn-outline btn-error mt-3"
+                    >
+                        Retry
+                    </button>
                 </div>
             ) : !allUsers || allUsers.length === 0 ? (
-                /* Empty State */
                 <div className="bg-white rounded-lg shadow-md p-8 text-center">
                     <Users className="mx-auto mb-4 text-blue-600" size={48} />
                     <h3 className="text-xl font-semibold text-gray-700 mb-2">No Users Found</h3>
                     <p className="text-gray-500">No users have registered yet.</p>
                 </div>
             ) : (
-                /* Users Table */
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="table table-zebra w-full">
@@ -349,7 +427,8 @@ const AdminUsers: React.FC = () => {
                                     <th className="text-left font-semibold text-gray-700">Last Name</th>
                                     <th className="text-left font-semibold text-gray-700">Email</th>
                                     <th className="text-left font-semibold text-gray-700">Phone</th>
-                                    <th className="text-left font-semibold text-gray-700">User Role</th>
+                                    <th className="text-left font-semibold text-gray-700">Address</th>
+                                    <th className="text-left font-semibold text-gray-700">Role</th>
                                     <th className="text-left font-semibold text-gray-700">Join Date</th>
                                     <th className="text-center font-semibold text-gray-700">Actions</th>
                                 </tr>
@@ -357,12 +436,17 @@ const AdminUsers: React.FC = () => {
                             <tbody>
                                 {allUsers.map((user: User) => (
                                     <tr key={user.user_id} className={editingUserId === user.user_id ? "bg-blue-50" : "hover:bg-gray-50"}>
-                                        <td className="font-bold text-gray-800">#{user.user_id}</td>
+                                        <td className="font-mono text-sm text-gray-800">
+                                            <span title={user.user_id}>
+                                                #{user.user_id.substring(0, 8)}...
+                                            </span>
+                                        </td>
                                         <td>{renderUserField(user, 'first_name')}</td>
                                         <td>{renderUserField(user, 'last_name')}</td>
                                         <td>{renderUserField(user, 'email')}</td>
-                                        <td>{renderUserField(user, 'phone_number')}</td>
-                                        <td>{renderUserField(user, 'user_type')}</td>
+                                        <td>{renderUserField(user, 'contact_phone')}</td>
+                                        <td className="max-w-xs">{renderUserField(user, 'address')}</td>
+                                        <td>{renderUserField(user, 'role')}</td>
                                         <td>
                                             <div className="flex items-center gap-1 text-sm text-gray-600">
                                                 <Calendar size={14} />
@@ -398,9 +482,9 @@ const AdminUsers: React.FC = () => {
                                                             <Edit size={14} />
                                                         </button>
                                                         <button
-                                                            onClick={() => handleUserTypeUpdate(
+                                                            onClick={() => handleUserRoleUpdate(
                                                                 user.user_id,
-                                                                user.user_type,
+                                                                user.role,
                                                                 `${user.first_name} ${user.last_name}`
                                                             )}
                                                             className="btn btn-ghost btn-xs text-green-600 tooltip"
@@ -428,7 +512,7 @@ const AdminUsers: React.FC = () => {
                         </table>
                     </div>
 
-                    {/* User Summary Stats */}
+                    {/* UPDATED STATISTICS - Changed 'Staff' to 'Users' */}
                     <div className="border-t border-gray-200 bg-gray-50 px-6 py-4">
                         <div className="flex flex-wrap gap-6 text-sm">
                             <div className="flex items-center gap-2">
@@ -438,23 +522,23 @@ const AdminUsers: React.FC = () => {
                             </div>
                             <div className="flex items-center gap-2">
                                 <UserCheck size={16} className="text-purple-600" />
-                                <span className="text-gray-600">Admin Users: </span>
+                                <span className="text-gray-600">Admins: </span>
                                 <span className="font-bold">
-                                    {allUsers.filter((u: User) => u.user_type === 'admin').length}
+                                    {allUsers.filter((u: User) => u.role === 'admin').length}
                                 </span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <Users size={16} className="text-green-600" />
-                                <span className="text-gray-600">Staff Users: </span>
+                                <span className="text-gray-600">Users: </span>
                                 <span className="font-bold">
-                                    {allUsers.filter((u: User) => u.user_type === 'staff').length}
+                                    {allUsers.filter((u: User) => u.role === 'user').length}
                                 </span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <Calendar size={16} className="text-gray-600" />
                                 <span className="text-gray-600">Customers: </span>
                                 <span className="font-bold text-blue-600">
-                                    {allUsers.filter((u: User) => u.user_type === 'customer').length}
+                                    {allUsers.filter((u: User) => u.role === 'customer').length}
                                 </span>
                             </div>
                         </div>

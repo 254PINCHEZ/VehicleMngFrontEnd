@@ -8,7 +8,6 @@ import { toast, Toaster } from 'sonner'
 import { useDispatch } from 'react-redux'
 import { setCredentials } from '../slice/Authslice'
 import { type LoginFormValues } from '../types/types'
-
 const Login: React.FC = () => {
   const [loginUser, { isLoading }] = useLoginMutation();
   const { register, handleSubmit, formState: { errors, isValid } } = useForm<LoginFormValues>({
@@ -19,31 +18,81 @@ const Login: React.FC = () => {
 
   const handleLoginForm = async (data: LoginFormValues) => {
     try {
-      const response = await loginUser(data).unwrap();
-      
-      // 🔍 DEBUG: Check what the login response contains
-      console.log('🔍 LOGIN RESPONSE:', response);
-      console.log('User ID Type:', typeof response.user?.user_id);
-      console.log('User ID Value:', response.user?.user_id);
-      console.log('Full User Object:', response.user);
-      
-      dispatch(setCredentials({ 
-        token: response.token, 
-        user: response.user 
-      }));
+        const response = await loginUser(data).unwrap();
+        
+        // Debug: Check the actual structure
+        console.log('🔍 Login Response:', response);
+        console.log('User object:', response.user);
+        console.log('User role:', response.user?.role);
+        console.log('🎯 ACTUAL ROLE FROM API:', `"${response.user.role}"`);
+        
+        dispatch(setCredentials({ 
+            token: response.token, 
+            user: response.user 
+        }));
 
-      toast.success(response.message || `Welcome back, ${response.user.name || response.user.email}!`);
+        toast.success(response.message || `Welcome back, ${response.user.first_name || response.user.email}!`);
 
-      // Redirect to home page instead of dashboard
-      setTimeout(() => {
-        navigate('/inventory');
-      }, 100);
-      
+        // Handle all possible role cases
+        if (response.user.role === 'admin') {
+            // Admin goes to admin dashboard
+            navigate('/admin/dashboard', { replace: true });
+        } else if (response.user.role === 'user' || response.user.role === 'customer') {
+            // Both 'user' and 'customer' roles go to inventory
+            navigate('/inventory', { replace: true });
+        } else {
+            // Fallback for any other role - log for debugging
+            console.warn(`⚠️ Unknown role "${response.user.role}", redirecting to inventory`);
+            navigate('/inventory', { replace: true });
+        }
     } catch (error: any) {
-      console.error('Login failed:', error);
-      toast.error(error.data?.message || 'Login failed. Please check your credentials and try again.');
+        console.error('Login failed:', error);
+        toast.error(error.data?.message || 'Login failed. Please check your credentials and try again.');
     }
   };
+
+
+
+// const Login: React.FC = () => {
+//   const [loginUser, { isLoading }] = useLoginMutation();
+//   const { register, handleSubmit, formState: { errors, isValid } } = useForm<LoginFormValues>({
+//     mode: 'onChange'
+//   });
+//   const dispatch = useDispatch();
+//   const navigate = useNavigate();
+
+
+
+//   const handleLoginForm = async (data: LoginFormValues) => {
+//     try {
+//         const response = await loginUser(data).unwrap();
+        
+//         // Debug: Check the actual structure
+//         console.log('🔍 Login Response:', response);
+//         console.log('User object:', response.user);
+//         console.log('User role:', response.user?.role);
+       
+        
+//         dispatch(setCredentials({ 
+//             token: response.token, 
+//             user: response.user 
+//         }));
+
+//         toast.success(response.message || `Welcome back, ${response.user.first_name || response.user.email}!`);
+
+      
+//             if (response.user.role === 'admin') {
+//                 navigate('/admin/dashboard');
+//             } else {
+//                 navigate('/inventory');
+// //             } 
+//     } catch (error: any) {
+//         console.error('Login failed:', error);
+//         toast.error(error.data?.message || 'Login failed. Please check your credentials and try again.');
+//     }
+// };
+
+
 
   return (
     <div className="min-h-screen flex flex-col">

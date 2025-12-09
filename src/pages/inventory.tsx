@@ -38,14 +38,14 @@ const Inventory: React.FC = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
+        {/* <Navbar /> */}
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <div className="loading loading-spinner loading-lg text-primary mb-4"></div>
             <p className="text-gray-600">Loading our premium vehicle collection...</p>
           </div>
         </div>
-        <Footer />
+        {/* <Footer /> */}
       </div>
     );
   }
@@ -53,7 +53,7 @@ const Inventory: React.FC = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
+        {/* <Navbar /> */}
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center max-w-md mx-auto p-8">
             <div className="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
@@ -71,7 +71,7 @@ const Inventory: React.FC = () => {
             </button>
           </div>
         </div>
-        <Footer />
+        {/* <Footer /> */}
       </div>
     );
   }
