@@ -22,6 +22,7 @@ export interface VehicleSpecificationFormData {
   seating_capacity: number;
   color: string;
   features: string;
+  image_url?: string; // Optional - admin can choose to add or not
 }
 
 export interface VehicleFormData {
@@ -59,26 +60,38 @@ const validateFormData = (data: VehicleFormData): string | null => {
     return 'Please enter a valid rental rate greater than 0';
   }
 
+  // Validate image URL format ONLY if provided (not required)
+  if (vehicle_spec.image_url && vehicle_spec.image_url.trim() !== '') {
+    if (!isValidUrl(vehicle_spec.image_url)) {
+      return 'Please enter a valid image URL (must start with http:// or https://)';
+    }
+  }
+
   return null;
 };
 
-// API Service - UPDATED to match your backend service.ts expectations
+// URL validation helper
+const isValidUrl = (urlString: string): boolean => {
+  try {
+    const url = new URL(urlString);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch (_) {
+    return false;
+  }
+};
+
+// API Service
 const vehicleService = {
   addVehicle: async (vehicleData: VehicleFormData, token: string): Promise<any> => {
-    // Transform data to match what your backend createVehicle expects
-    // Based on your service.ts, it expects { vehicle_spec_id, rental_rate, availability }
-    // But you need to first create the vehicle specification
-    
-    // Since your current createVehicle only accepts vehicle_spec_id, we need to:
-    // 1. First create vehicle specification (if separate endpoint exists)
-    // 2. Then create vehicle with the returned spec_id
-    
-    // For now, I'll create a proper payload that includes both vehicle and spec data
     const payload = {
       rental_rate: vehicleData.rental_rate,
       availability: vehicleData.availability,
       location_id: vehicleData.location_id,
-      vehicle_spec: vehicleData.vehicle_spec
+      vehicle_spec: {
+        ...vehicleData.vehicle_spec,
+        // Send image_url as null if empty string
+        image_url: vehicleData.vehicle_spec.image_url?.trim() || null
+      }
     };
 
     const response = await fetch(API_ENDPOINTS.VEHICLES, {
@@ -120,6 +133,7 @@ const initialFormData: VehicleFormData = {
     seating_capacity: 5,
     color: '',
     features: '',
+    image_url: '', // Empty by default - admin must choose
   },
 };
 
@@ -127,6 +141,7 @@ const AddVehicle: React.FC = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<VehicleFormData>(initialFormData);
+  const [showImagePreview, setShowImagePreview] = useState(false);
 
   const getAuthToken = (): string | null => {
     return localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -161,8 +176,29 @@ const AddVehicle: React.FC = () => {
     }));
   };
 
+  // Function to clear image URL
+  const clearImageUrl = () => {
+    setFormData(prev => ({
+      ...prev,
+      vehicle_spec: {
+        ...prev.vehicle_spec,
+        image_url: '',
+      },
+    }));
+    setShowImagePreview(false);
+    toast.success('Image URL cleared');
+  };
+
+  // Function to open Unsplash in new tab
+  const openUnsplashSearch = () => {
+    const searchQuery = `${formData.vehicle_spec.manufacturer} ${formData.vehicle_spec.model} car`;
+    const unsplashUrl = `https://unsplash.com/s/photos/${encodeURIComponent(searchQuery)}`;
+    window.open(unsplashUrl, '_blank');
+  };
+
   const resetForm = () => {
     setFormData(initialFormData);
+    setShowImagePreview(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -184,18 +220,30 @@ const AddVehicle: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // Log what we're sending for debugging
       console.log('Submitting vehicle data:', formData);
       
-      await vehicleService.addVehicle(formData, token);
+      const result = await vehicleService.addVehicle(formData, token);
       
       toast.success('Vehicle added successfully!');
+      
+      // Show message about image
+      if (!formData.vehicle_spec.image_url || formData.vehicle_spec.image_url.trim() === '') {
+        toast('Note: No image URL provided. Customers will see a car emoji.', {
+          icon: 'ℹ️',
+          duration: 5000,
+        });
+      } else {
+        toast('Image URL saved. Customers will see the uploaded image.', {
+          icon: '🖼️',
+          duration: 4000,
+        });
+      }
+      
       resetForm();
       navigate('/admin/vehicles');
     } catch (error: any) {
       console.error('Vehicle addition error:', error);
       
-      // Check for specific error messages
       if (error.message.includes('vehicle_spec_id') && error.message.includes('NULL')) {
         toast.error('Backend error: Vehicle specification ID is missing. The backend needs to create the specification first.');
       } else {
@@ -218,7 +266,7 @@ const AddVehicle: React.FC = () => {
             Add New Vehicle
           </h1>
           <p className="text-gray-600">
-            Add a new vehicle to the rental inventory
+            Add a new vehicle to the rental inventory. Upload an image URL to show real pictures to customers.
           </p>
         </header>
 
@@ -270,6 +318,128 @@ const AddVehicle: React.FC = () => {
                   type="text"
                   placeholder="e.g., Red, Blue, Black"
                 />
+              </div>
+
+              {/* Image URL Field Section */}
+              <div className="mt-6 space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Vehicle Image URL (Optional)
+                    </label>
+                    <span className="text-xs text-gray-500">
+                      Customers will see this image
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      name="image_url"
+                      value={formData.vehicle_spec.image_url || ''}
+                      onChange={handleSpecificationChange}
+                      placeholder="Paste a direct image URL (http:// or https://)"
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onClick={openUnsplashSearch}
+                      className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium whitespace-nowrap"
+                    >
+                      Find Images
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <span className="text-xs text-gray-600">
+                      Tip: Use <a 
+                        href="https://unsplash.com/s/photos/car" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        Unsplash
+                      </a> for free high-quality images
+                    </span>
+                    {formData.vehicle_spec.image_url && (
+                      <button
+                        type="button"
+                        onClick={clearImageUrl}
+                        className="px-3 py-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-xs font-medium ml-auto"
+                      >
+                        Remove Image
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Leave empty if you don't want to add an image. Customers will see a car emoji instead.
+                  </p>
+                </div>
+
+                {/* Image Preview */}
+                {formData.vehicle_spec.image_url && formData.vehicle_spec.image_url.trim() !== '' && (
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Customer View Preview
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowImagePreview(!showImagePreview)}
+                        className="text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        {showImagePreview ? 'Hide Preview' : 'Show Preview'}
+                      </button>
+                    </div>
+                    {showImagePreview && (
+                      <div className="border rounded-lg overflow-hidden bg-gray-100">
+                        <div className="relative h-48 overflow-hidden">
+                          <img 
+                            src={formData.vehicle_spec.image_url} 
+                            alt={`${formData.vehicle_spec.manufacturer} ${formData.vehicle_spec.model} preview`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI2YwZjBmMCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwsc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY2NiI+SW1hZ2UgTm90IEZvdW5kPC90ZXh0Pjwvc3ZnPg==';
+                              e.currentTarget.alt = 'Image not found';
+                              toast.error('Image URL is invalid or not accessible. Please check the URL.');
+                            }}
+                            onLoad={() => {
+                              toast.success('Image loaded! This is what customers will see.', {
+                                icon: '👁️',
+                                duration: 3000,
+                              });
+                            }}
+                          />
+                          {/* Availability badge like in inventory */}
+                          <div className="absolute top-3 right-3 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                            ✅ Available
+                          </div>
+                          {/* Year badge like in inventory */}
+                          <div className="absolute top-3 left-3 bg-blue-800 text-white px-2 py-1 rounded-full text-xs font-bold">
+                            {formData.vehicle_spec.year}
+                          </div>
+                        </div>
+                        <div className="p-3 bg-gray-50 border-t">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                {formData.vehicle_spec.manufacturer} {formData.vehicle_spec.model}
+                              </p>
+                              <p className="text-xs text-gray-600 truncate max-w-xs">
+                                {formData.vehicle_spec.image_url}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-lg font-bold text-green-600">
+                                ${formData.rental_rate}
+                              </p>
+                              <p className="text-xs text-gray-500">per day</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Technical Specifications */}

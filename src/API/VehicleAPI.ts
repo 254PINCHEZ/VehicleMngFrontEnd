@@ -2,20 +2,17 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { Vehicle, VehicleSpecification, ApiResponse } from '../types/types';
 import { apiDomain } from '../ApiDomain/ApiDomain';
 
-// First, let's see what apiDomain is
 console.log('API Domain:', apiDomain);
 
 export const vehicleApi = createApi({
   reducerPath: 'vehicleApi',
   baseQuery: fetchBaseQuery({ 
-    baseUrl: apiDomain, // Should be http://localhost:3001 or http://localhost:3001/api
+    baseUrl: apiDomain,
     prepareHeaders: (headers, { getState, endpoint }) => {
       console.log(`Preparing headers for: ${endpoint}`);
       
-      // Handle tracking prevention - try multiple storage methods
       let token = null;
       
-      // Try localStorage first
       try {
         token = localStorage.getItem('token');
         console.log('Token from localStorage:', token ? 'Found' : 'Not found');
@@ -23,7 +20,6 @@ export const vehicleApi = createApi({
         console.log('localStorage blocked by tracking prevention');
       }
       
-      // Fallback to sessionStorage
       if (!token) {
         try {
           token = sessionStorage.getItem('token');
@@ -33,7 +29,6 @@ export const vehicleApi = createApi({
         }
       }
       
-      // Fallback to cookies
       if (!token) {
         try {
           const cookies = document.cookie.split(';');
@@ -62,9 +57,8 @@ export const vehicleApi = createApi({
   tagTypes: ['Vehicles'],
   endpoints: (builder) => ({
 
-    // ✅ FIXED: Add /api/ prefix to all endpoints
     getAllVehicles: builder.query<Vehicle[], void>({
-      query: () => '/api/vehicles', // Changed from '/vehicles' to '/api/vehicles'
+      query: () => '/api/vehicles',
       providesTags: ['Vehicles'],
       transformErrorResponse: (response) => {
         console.log('Error fetching vehicles:', response);
@@ -73,18 +67,17 @@ export const vehicleApi = createApi({
     }),
 
     getVehicleById: builder.query<Vehicle, string>({
-      query: (vehicle_id) => `/api/vehicles/${vehicle_id}`, // Added /api/
+      query: (vehicle_id) => `/api/vehicles/${vehicle_id}`,
       providesTags: ['Vehicles']
     }),
 
-    // ✅ ADD THIS - Update vehicle status (for availability toggle)
     updateVehicleStatus: builder.mutation<ApiResponse<{ message: string }>, { 
       vehicle_id: string; 
       availability: boolean;
       rental_rate?: number;
     }>({
       query: ({ vehicle_id, availability, rental_rate = 0 }) => ({
-        url: `/api/vehicles/${vehicle_id}`, // Added /api/
+        url: `/api/vehicles/${vehicle_id}`,
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -97,19 +90,18 @@ export const vehicleApi = createApi({
       invalidatesTags: ['Vehicles']
     }),
 
-    // ✅ ADD THIS - Delete vehicle
     deleteVehicle: builder.mutation<ApiResponse<{ message: string }>, string>({
       query: (vehicle_id) => ({
-        url: `/api/vehicles/${vehicle_id}`, // Added /api/
+        url: `/api/vehicles/${vehicle_id}`,
         method: 'DELETE',
       }),
       invalidatesTags: ['Vehicles']
     }),
 
-    // Keep other endpoints with /api/ prefix
+    // Updated to handle image_url in FormData
     addVehicle: builder.mutation<ApiResponse<{ vehicle_id: string }>, FormData>({
       query: (formData) => ({
-        url: '/api/vehicles', // Added /api/
+        url: '/api/vehicles',
         method: 'POST',
         body: formData,
       }),
@@ -121,23 +113,21 @@ export const vehicleApi = createApi({
       formData: FormData 
     }>({
       query: ({ vehicle_id, formData }) => ({
-        url: `/api/vehicles/${vehicle_id}`, // Added /api/
+        url: `/api/vehicles/${vehicle_id}`,
         method: 'PUT',
         body: formData,
       }),
       invalidatesTags: ['Vehicles']
     }),
 
-    // ... other endpoints with /api/ prefix
   }),
 });
 
-// ✅ CRITICAL: Export all hooks
 export const {
   useGetAllVehiclesQuery,
   useGetVehicleByIdQuery,
   useAddVehicleMutation,
   useUpdateVehicleMutation,
-  useUpdateVehicleStatusMutation, // ✅ This must be exported
+  useUpdateVehicleStatusMutation,
   useDeleteVehicleMutation,
 } = vehicleApi;

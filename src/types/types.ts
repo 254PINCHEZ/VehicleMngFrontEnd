@@ -77,29 +77,55 @@ export interface User {
 //     name?: string; // For compatibility with existing code
 // }
 
-export interface Vehicle {
-    vehicle_id: string;
-    vehicle_spec_id: string;
-    rental_rate: number;
-    availability: boolean;
-    created_at: string;
-    updated_at: string;
-    vehicle_spec?: VehicleSpecification;
-    location?: Location;
+// types.ts or similar
+export interface VehicleSpecification {
+  vehicleSpec_id: string;
+  manufacturer: string;
+  model: string;
+  year: number;
+  fuel_type: string;
+  engine_capacity?: string;
+  transmission?: string;
+  seating_capacity: number;
+  color: string;
+  features: string;
+  image_url?: string; // ADD THIS
 }
 
-export interface VehicleSpecification {
-    vehicleSpec_id: string;
-    manufacturer: string;
-    model: string;
-    year: number;
-    fuel_type: string;
-    engine_capacity?: string;
-    transmission?: string;
-    seating_capacity: number;
-    color: string;
-    features: string;
+export interface Vehicle {
+  vehicle_id: string;
+  vehicle_spec_id: string;
+  rental_rate: number;
+  availability: boolean;
+  created_at: string;
+  updated_at: string;
+  vehicle_spec: VehicleSpecification;
+  location: Location;
 }
+
+// export interface Vehicle {
+//     vehicle_id: string;
+//     vehicle_spec_id: string;
+//     rental_rate: number;
+//     availability: boolean;
+//     created_at: string;
+//     updated_at: string;
+//     vehicle_spec?: VehicleSpecification;
+//     location?: Location;
+// }
+
+// export interface VehicleSpecification {
+//     vehicleSpec_id: string;
+//     manufacturer: string;
+//     model: string;
+//     year: number;
+//     fuel_type: string;
+//     engine_capacity?: string;
+//     transmission?: string;
+//     seating_capacity: number;
+//     color: string;
+//     features: string;
+// }
 
 export interface Location {
     location_id: string;
